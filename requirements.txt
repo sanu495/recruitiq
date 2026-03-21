@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlmodel
+pymysql
+python-jose
+passlib
+python-multipart
+pdfplumber
+httpx
+python-dotenv
+pydantic-settings
