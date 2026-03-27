@@ -1,7 +1,7 @@
 from typing import Optional, List
 from datetime import datetime, date
 from pydantic import BaseModel, EmailStr
-from app.Schema.schema import UserRole, JobType, JobStatus, AppStage, InterviewStatus
+from Backend.app.Schema.schema import UserRole, JobType, JobStatus, AppStage, InterviewStatus
 
 
 # ══════════════════════════════════════════════════

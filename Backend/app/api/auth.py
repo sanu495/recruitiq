@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from app.core.database import get_session
-from app.core.security import (hashed_password, verify_password, create_access_token, get_current_user)
-from app.Models.models import RegisterRequest, LoginResponse, UserOut
-from app.Schema.schema import User
-from app.core.genericdal import GenericDal
+from Backend.app.core.database import get_session
+from Backend.app.core.security import (hashed_password, verify_password, create_access_token, get_current_user)
+from Backend.app.Models.models import RegisterRequest, LoginResponse, UserOut
+from Backend.app.Schema.schema import User
+from Backend.app.core.genericdal import GenericDal
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -23,7 +23,7 @@ def register(data: RegisterRequest, session: Session = Depends(get_session)):
     
     # Create new user 
 
-    user = User(name=data.name, email=data.email, phone=data.phone, hashed_password=hash_password(data.password), role=data.role,)
+    user = User(name=data.name, email=data.email, phone=data.phone, hashed_password=hashed_password(data.password), role=data.role,)
     return dal.create(user)
 
 # ── Login ──────────────────────────────────────────────────────────────────────

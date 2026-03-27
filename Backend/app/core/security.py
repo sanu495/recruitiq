@@ -5,9 +5,9 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
-from app.core.config import settings
-from app.core.database import get_session
-from app.Schema.schema import User
+from Backend.app.core.config import settings
+from Backend.app.core.database import get_session
+from Backend.app.Schema.schema import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")

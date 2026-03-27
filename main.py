@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from Backend.app.core.database import create_db_and_tables
+from Backend.app.api.auth import router
 import os
 import uvicorn
 
@@ -23,15 +24,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
-    print("Database is ready")
 
-@app.get("/")
-def home():
-    return {"message": "RecruitIQ API is running 🚀",
-        "docs": "/docs",
-        "status": "ok"
-    }
-
+app.include_router(router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host = "127.0.0.1", port = 8000, reload = True)
