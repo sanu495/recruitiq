@@ -8,17 +8,22 @@ from sqlmodel import Session, select
 from Backend.app.core.config import settings
 from Backend.app.core.database import get_session
 from Backend.app.Schema.schema import User
+import hashlib
+import base64
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ── Password ───────────────────────────────────────────────────────────────────
 
+def prehash_password(password:str) -> str:
+    return base64.b64encode(hashlib.sha256(password.encode()).digest()).decode()
+
 def hashed_password(password:str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(prehash_password(password))
 
 def verify_password(plain:str, hashed:str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(prehash_password(plain), hashed)
 
  
 # ── JWT Token ──────────────────────────────────────────────────────────────────
@@ -31,7 +36,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta]= None)-> 
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithm=[settings.ALGORITHM])
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,
                             detail = "Invalid or expired token")

@@ -28,7 +28,7 @@ def register(data: RegisterRequest, session: Session = Depends(get_session)):
 
 # ── Login ──────────────────────────────────────────────────────────────────────
 
-@router.post("login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse)
 def login(form: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
     dal = GenericDal(User, session)
 
