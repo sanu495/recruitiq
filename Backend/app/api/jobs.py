@@ -59,4 +59,58 @@ def list_jobs(search: Optional[str] = Query(None, description="Search by title  
  
     return jobs
 
+# ── Get Single Job ─────────────────────────────────────────────────────────────
+
+@router.get("/{job_id}", response_model=JobOut)
+def get_job(job_id: int, _: User = Depends(get_session), session: Session = Depends(get_session)):
+    dal = GenericDal(Job, session)
+    return dal.get(job_id)
+
+# ── Update Job (Recruiter who posted it / Admin) ───────────────────────────────
+
+@router.put("/{job_id}", response_model=JobOut)
+def update_job(job_id: int, data: JobUpdate, current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(job, session)
+    job = dal.get(job_id)
+
+    # Only the recruiter who posted it or admin can update
+
+    if job.recruiter_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="You can only update your own jobs")
     
+    job.updated_at = datetime.utcnow()
+    return dal.update(job_id, data.dict(exclude_none=True))
+
+# ── Delete Job ─────────────────────────────────────────────────────────────────
+
+@router.delete("/{job_id}")
+def delete_job(job_id: int, current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(Job, session)
+    job = dal.get(job_id)
+
+    if job.recruiter != current_user.id and current_user.role !="admin":
+        raise HTTPException(status_code=403, detail="You can only delete your own jobs")
+    
+    dal.delete(job_id)
+    return {"message":"Job deleted successfully"}
+
+# ── My Posted Jobs (Recruiter) ─────────────────────────────────────────────────
+
+@router.get("/my/posted", response_model=List[JobOut])
+def my_posted_jobs(current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(Job, session)
+    return dal.get_many_by_field("recruiter_id", current_user.id)
+
+# ── Close / Pause / Reopen Job ─────────────────────────────────────────────────
+
+@router.patch("/{job_id}/status", response_model=JobOut)
+def change_job_status(job_id: int, status: JobStatus, current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(Job, session)
+    job = dal.get(job_id)
+
+    if job.recruiter_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not your job")
+    
+    return dal.update(job_id, {"status": status, "updated_at": datetime.utcnow()})
+
+   
