@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from Backend.app.core.database import create_db_and_tables
-from Backend.app.api.auth import router
+from Backend.app.api import auth, jobs, applications, pipeline
 import os
 import uvicorn
 
@@ -21,11 +21,16 @@ os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
+# Routers
+app.include_router(auth.router)
+app.include_router(jobs.router)
+app.include_router(applications.router)
+app.include_router(pipeline.router)
+
+
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
-
-app.include_router(router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host = "127.0.0.1", port = 8000, reload = True)
