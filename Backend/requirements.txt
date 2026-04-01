@@ -9,3 +9,5 @@ pdfplumber
 httpx
 python-dotenv
 pydantic-settings
+bcrypt
+groq

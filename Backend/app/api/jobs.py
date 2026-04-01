@@ -62,7 +62,7 @@ def list_jobs(search: Optional[str] = Query(None, description="Search by title  
 # ── Get Single Job ─────────────────────────────────────────────────────────────
 
 @router.get("/{job_id}", response_model=JobOut)
-def get_job(job_id: int, _: User = Depends(get_session), session: Session = Depends(get_session)):
+def get_job(job_id: int, _: User = Depends(get_current_user), session: Session = Depends(get_session)):
     dal = GenericDal(Job, session)
     return dal.get(job_id)
 
@@ -70,7 +70,7 @@ def get_job(job_id: int, _: User = Depends(get_session), session: Session = Depe
 
 @router.put("/{job_id}", response_model=JobOut)
 def update_job(job_id: int, data: JobUpdate, current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
-    dal = GenericDal(job, session)
+    dal = GenericDal(Job, session)
     job = dal.get(job_id)
 
     # Only the recruiter who posted it or admin can update
@@ -88,7 +88,7 @@ def delete_job(job_id: int, current_user: User = Depends(require_role("recruiter
     dal = GenericDal(Job, session)
     job = dal.get(job_id)
 
-    if job.recruiter != current_user.id and current_user.role !="admin":
+    if job.recruiter_id != current_user.id and current_user.role !="admin":
         raise HTTPException(status_code=403, detail="You can only delete your own jobs")
     
     dal.delete(job_id)

@@ -114,9 +114,11 @@ def get_application(app_id: int, current_user: User = Depends(get_current_user),
     app = dal.get(app_id)
 
     # Candidate can only see their own
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
     if current_user.role == "candidate" and app.candidate_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
-
+   
     return app
 
 # ── Withdraw Application (Candidate) ──────────────────────────────────────────
