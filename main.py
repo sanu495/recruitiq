@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from Backend.app.core.database import create_db_and_tables
-from Backend.app.api import auth, jobs, applications, pipeline
+from Backend.app.api import auth, jobs, applications, pipeline, notification, analytics
 import os
 import uvicorn
 
@@ -26,7 +26,8 @@ app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(applications.router)
 app.include_router(pipeline.router)
-
+app.include_router(notification.router)
+app.include_router(analytics.router)
 
 @app.on_event("startup")
 def on_startup():
