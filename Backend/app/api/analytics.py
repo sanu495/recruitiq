@@ -115,8 +115,10 @@ def ai_score_distribution(current_user: User = Depends(require_role("recruiter",
         elif score <= 40:
             buckets["21-40"] += 1
         elif score <= 60:
-            buckets["61-80"] += 1
+            buckets["41-60"] += 1
         elif score <= 80:
+            buckets["61-80"] += 1
+        else:
             buckets["81-100"] += 1
     
     return buckets

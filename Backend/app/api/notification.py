@@ -52,6 +52,7 @@ def mark_all_read(current_user: User = Depends(get_current_user), session: Sessi
     return {"message":f"{len(notifs)} notification marked as read"}
 
 # ── Delete a Notification ──────────────────────────────────────────────────────
+@router.delete("/{notif_id}")
 def delete_notifications(notif_id: int, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
     dal = GenericDal(Notification, session)
     notif = dal.get(notif_id)
