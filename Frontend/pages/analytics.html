@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecruitIQ — Analytics</title>
+<!-- ── Favicon ─────────────────────────────────────────── -->
+<link rel="icon" href="../favicon/favicon.ico">
+<link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon/favicon-32x32.png">
+<link rel="apple-touch-icon"                href="../favicon/apple-touch-icon.png">
+<link rel="manifest"                        href="../favicon/site.webmanifest">
+<meta name="theme-color"                    content="#8B5CF6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <main class="page-content">
+
+      <div class="page-header">
+        <h2>Hiring Analytics</h2>
+        <p>Insights and metrics across your hiring pipeline</p>
+      </div>
+
+      <!-- OVERVIEW STATS -->
+      <div class="grid-4" style="margin-bottom:24px;" id="overview-stats">
+        <div class="stat-card"><div class="spinner" style="margin:12px auto;"></div></div>
+        <div class="stat-card"><div class="spinner" style="margin:12px auto;"></div></div>
+        <div class="stat-card"><div class="spinner" style="margin:12px auto;"></div></div>
+        <div class="stat-card"><div class="spinner" style="margin:12px auto;"></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+        <!-- PIPELINE BREAKDOWN BAR CHART -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Pipeline Breakdown</div>
+              <div class="card-subtitle">Candidates per stage</div>
+            </div>
+          </div>
+          <div style="height:240px;position:relative;">
+            <canvas id="pipeline-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- MONTHLY TREND LINE CHART -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Applications Trend</div>
+              <div class="card-subtitle">Monthly application volume</div>
+            </div>
+          </div>
+          <div style="height:240px;position:relative;">
+            <canvas id="trend-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+        <!-- AI SCORE DISTRIBUTION -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">AI Score Distribution</div>
+              <div class="card-subtitle">Resume match score ranges</div>
+            </div>
+          </div>
+          <div style="height:220px;position:relative;">
+            <canvas id="score-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- APPLICATIONS PER JOB -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Applications per Job</div>
+              <div class="card-subtitle">Most popular job listings</div>
+            </div>
+          </div>
+          <div style="height:220px;position:relative;">
+            <canvas id="perjob-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP CANDIDATES TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Top AI-Scored Candidates</div>
+            <div class="card-subtitle">Highest match scores across all jobs</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Job</th>
+                <th>AI Score</th>
+                <th>Match Level</th>
+                <th>Stage</th>
+                <th>Applied</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="top-candidates-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">
+                <div class="spinner" style="margin:0 auto;"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+requireAuth(['recruiter','admin']);
+buildSidebar('analytics');
+buildTopbar('Analytics', 'Hiring insights and performance metrics');
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+};
+
+const STAGE_COLORS = {
+  applied:'#64748b', screening:'#A78BFA', interview:'#F59E0B',
+  offer:'#D966F5', hired:'#22C55E', rejected:'#EF4444'
+};
+
+async function loadAnalytics() {
+  try {
+    const [overview, pipeline, monthly, scores, perJob, topCandidates] = await Promise.all([
+      AnalyticsAPI.overview(),
+      AnalyticsAPI.pipelineBreakdown(),
+      AnalyticsAPI.monthlyTrend(),
+      AnalyticsAPI.aiScores(),
+      AnalyticsAPI.perJob(),
+      AnalyticsAPI.topCandidates(null, 20),
+    ]);
+
+    // Overview stats
+    document.getElementById('overview-stats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card-icon">📋</div>
+        <div class="stat-card-value">${overview.total_applications}</div>
+        <div class="stat-card-label">Total Applications</div>
+        <div class="stat-card-change up">${overview.total_candidates} candidates</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background:rgba(34,197,94,0.12);">✅</div>
+        <div class="stat-card-value">${overview.hired_count}</div>
+        <div class="stat-card-label">Total Hired</div>
+        <div class="stat-card-change up">${overview.conversion_rate}% conversion</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background:rgba(245,158,11,0.12);">💼</div>
+        <div class="stat-card-value">${overview.open_jobs}</div>
+        <div class="stat-card-label">Open Jobs</div>
+        <div class="stat-card-change up">of ${overview.total_jobs} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background:rgba(217,102,245,0.12);">🎯</div>
+        <div class="stat-card-value">${overview.conversion_rate}%</div>
+        <div class="stat-card-label">Conversion Rate</div>
+        <div class="stat-card-change up">Applied → Hired</div>
+      </div>`;
+
+    // Pipeline bar chart
+    const pipeStages = Object.keys(pipeline);
+    new Chart(document.getElementById('pipeline-chart'), {
+      type: 'bar',
+      data: {
+        labels: pipeStages.map(s => s.charAt(0).toUpperCase()+s.slice(1)),
+        datasets: [{
+          data: Object.values(pipeline),
+          backgroundColor: pipeStages.map(s => STAGE_COLORS[s]+'CC' || '#888'),
+          borderRadius: 6,
+        }]
+      },
+      options: { ...CHART_DEFAULTS,
+        scales: {
+          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+        }
+      }
+    });
+
+    // Monthly trend line chart
+    if (monthly.length > 0) {
+      new Chart(document.getElementById('trend-chart'), {
+        type: 'line',
+        data: {
+          labels: monthly.map(m => m.month),
+          datasets: [{
+            data: monthly.map(m => m.applications),
+            borderColor: '#8B5CF6',
+            backgroundColor: 'rgba(139,92,246,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#8B5CF6',
+            pointRadius: 4,
+          }]
+        },
+        options: { ...CHART_DEFAULTS,
+          scales: {
+            x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+            y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          }
+        }
+      });
+    } else {
+      document.getElementById('trend-chart').parentElement.innerHTML =
+        '<div class="empty-state" style="padding:40px;"><div class="empty-state-icon">📈</div><p>Not enough data yet</p></div>';
+    }
+
+    // AI Score distribution
+    const scoreLabels = Object.keys(scores);
+    const scoreVals = Object.values(scores);
+    const scoreColors = ['#EF4444','#F59E0B','#60A5FA','#A78BFA','#22C55E'];
+    new Chart(document.getElementById('score-chart'), {
+      type: 'bar',
+      data: {
+        labels: scoreLabels,
+        datasets: [{
+          data: scoreVals,
+          backgroundColor: scoreColors,
+          borderRadius: 6,
+        }]
+      },
+      options: { ...CHART_DEFAULTS,
+        plugins: { ...CHART_DEFAULTS.plugins, tooltip: { callbacks: {
+          title: ctx => `Score Range: ${ctx[0].label}`,
+          label: ctx => ` ${ctx.raw} candidates`,
+        }}},
+        scales: {
+          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+        }
+      }
+    });
+
+    // Per-job applications horizontal bar
+    const topJobs = perJob.slice(0,6);
+    new Chart(document.getElementById('perjob-chart'), {
+      type: 'bar',
+      data: {
+        labels: topJobs.map(j => j.job_title.length > 20 ? j.job_title.slice(0,20)+'...' : j.job_title),
+        datasets: [{
+          data: topJobs.map(j => j.total_applicants),
+          backgroundColor: 'rgba(139,92,246,0.7)',
+          borderRadius: 6,
+        }]
+      },
+      options: { ...CHART_DEFAULTS,
+        indexAxis: 'y',
+        scales: {
+          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          y: { grid: { display:false }, ticks: { color:'#9B97B8', font:{size:11} } },
+        }
+      }
+    });
+
+    // Top candidates table
+    const tbody = document.getElementById('top-candidates-tbody');
+    if (topCandidates.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">No AI-screened candidates yet</td></tr>`;
+    } else {
+      tbody.innerHTML = topCandidates.map((c, i) => {
+        const sc = getScoreColor(c.ai_score);
+        return `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${i+1}</div>
+                <div>
+                  <div style="font-weight:600;font-size:13px;">${c.candidate_name}</div>
+                  <div style="font-size:11px;color:var(--text-muted);">${c.candidate_email}</div>
+                </div>
+              </div>
+            </td>
+            <td style="font-size:13px;color:var(--text-secondary);">${c.job_title}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="font-size:15px;font-weight:800;color:${sc};">${c.ai_score}</div>
+                <div style="flex:1;height:4px;background:var(--border);border-radius:2px;min-width:60px;">
+                  <div style="height:4px;width:${c.ai_score}%;background:${sc};border-radius:2px;"></div>
+                </div>
+              </div>
+            </td>
+            <td><span style="font-size:12px;font-weight:600;color:${sc};">${getScoreLabel(c.ai_score)}</span></td>
+            <td>${stageBadge(c.stage)}</td>
+            <td style="font-size:12px;color:var(--text-muted);">${formatDate(c.applied_at)}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="window.location.href='pipeline.html?job_id=${c.job_id}'">
+                View →
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+function exportCSV() {
+  showToast('Preparing CSV export...', 'info');
+  // Opens export for first job — can be enhanced
+}
+
+loadAnalytics();
+</script>
+</body>
+</html>

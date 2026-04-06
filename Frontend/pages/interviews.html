@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecruitIQ — Interviews</title>
+<!-- ── Favicon ─────────────────────────────────────────── -->
+<link rel="icon" href="../favicon/favicon.ico">
+<link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon/favicon-32x32.png">
+<link rel="apple-touch-icon"                href="../favicon/apple-touch-icon.png">
+<link rel="manifest"                        href="../favicon/site.webmanifest">
+<meta name="theme-color"                    content="#8B5CF6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <main class="page-content">
+
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h2>Interviews</h2>
+          <p id="page-sub">Manage interview schedules</p>
+        </div>
+        <button class="btn btn-primary" id="schedule-btn" style="display:none;" onclick="openScheduleModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Schedule Interview
+        </button>
+      </div>
+
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;background:var(--bg-card);border-radius:10px;padding:4px;margin-bottom:20px;max-width:360px;">
+        <button class="btn" id="tab-upcoming" onclick="showTab('upcoming')" style="flex:1;background:var(--gradient);color:#fff;border:none;">Upcoming</button>
+        <button class="btn" id="tab-all" onclick="showTab('all')" style="flex:1;background:transparent;color:var(--text-muted);border:none;">All Interviews</button>
+      </div>
+
+      <!-- INTERVIEWS LIST -->
+      <div id="interviews-container">
+        <div style="text-align:center;padding:60px;color:var(--text-muted);">
+          <div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal-overlay hidden" id="schedule-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Schedule Interview</h3>
+      <button class="modal-close" onclick="closeScheduleModal()">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Application ID *</label>
+      <input type="number" class="form-control" id="s-app-id" placeholder="Enter application ID">
+      <div class="form-hint">Get the application ID from the Pipeline page</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Date & Time *</label>
+        <input type="datetime-local" class="form-control" id="s-datetime">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <select class="form-control" id="s-duration">
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60" selected>60 minutes</option>
+          <option value="90">90 minutes</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Meeting Link</label>
+      <input type="url" class="form-control" id="s-link" placeholder="https://meet.google.com/...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Physical Location (if applicable)</label>
+      <input type="text" class="form-control" id="s-location" placeholder="Office address or room">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes for Candidate</label>
+      <textarea class="form-control" id="s-notes" rows="2" placeholder="What to prepare, documents to bring, etc."></textarea>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeScheduleModal()">Cancel</button>
+      <button class="btn btn-primary" id="schedule-save-btn" onclick="scheduleInterview()">Schedule →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+let currentUser = null;
+let currentTab = 'upcoming';
+let allInterviews = [];
+
+currentUser = requireAuth();
+if (currentUser) {
+  const isRecruiter = ['recruiter','admin'].includes(currentUser.role);
+  buildSidebar('interviews');
+  buildTopbar('Interviews', isRecruiter ? 'Schedule and manage candidate interviews' : 'Your scheduled interviews');
+  if (isRecruiter) {
+    document.getElementById('schedule-btn').style.display = 'flex';
+    document.getElementById('page-sub').textContent = 'Schedule and manage candidate interviews';
+  } else {
+    document.getElementById('page-sub').textContent = 'View and confirm your interviews';
+  }
+  loadInterviews();
+}
+
+async function loadInterviews() {
+  try {
+    if (currentTab === 'upcoming') {
+      allInterviews = await InterviewAPI.upcoming();
+    } else {
+      allInterviews = await InterviewAPI.list();
+    }
+    renderInterviews(allInterviews);
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+function showTab(tab) {
+  currentTab = tab;
+  const tabs = ['upcoming','all'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-${t}`);
+    if (t === tab) {
+      btn.style.background = 'var(--gradient)'; btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'transparent'; btn.style.color = 'var(--text-muted)';
+    }
+  });
+  loadInterviews();
+}
+
+function renderInterviews(interviews) {
+  const container = document.getElementById('interviews-container');
+  if (interviews.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📅</div>
+        <h3>No ${currentTab === 'upcoming' ? 'upcoming ' : ''}interviews</h3>
+        <p>${currentTab === 'upcoming'
+            ? 'No interviews scheduled yet. Schedule one from the Pipeline page.'
+            : 'No interview history found.'}</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${interviews.map(iv => interviewCard(iv)).join('')}
+    </div>`;
+}
+
+function interviewCard(iv) {
+  const isRecruiter = ['recruiter','admin'].includes(currentUser.role);
+  const statusColors = {
+    scheduled:'var(--warning)', confirmed:'var(--success)',
+    completed:'var(--violet-light)', cancelled:'var(--danger)'
+  };
+  const sc = statusColors[iv.status] || 'var(--text-muted)';
+  const dt = new Date(iv.scheduled_at);
+  const isPast = dt < new Date();
+
+  return `
+    <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;">
+      <div style="display:flex;gap:16px;align-items:center;">
+        <div style="width:52px;height:52px;border-radius:12px;background:${isPast?'var(--bg-input)':'rgba(245,158,11,0.15)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="font-size:16px;font-weight:800;color:${isPast?'var(--text-muted)':'var(--warning)'};">${dt.getDate()}</div>
+          <div style="font-size:10px;color:var(--text-muted);">${dt.toLocaleString('default',{month:'short'})}</div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">Interview · App #${iv.application_id}</div>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${sc}20;color:${sc};">${capitalize(iv.status)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">
+            📅 ${formatDateTime(iv.scheduled_at)} &nbsp;·&nbsp; ⏱ ${iv.duration_minutes} minutes
+          </div>
+          ${iv.meeting_link ? `<a href="${iv.meeting_link}" style="font-size:12px;color:var(--violet-light);">🔗 Join Meeting</a>` : ''}
+          ${iv.location ? `<div style="font-size:12px;color:var(--text-muted);">📍 ${iv.location}</div>` : ''}
+          ${iv.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📝 ${iv.notes}</div>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+        ${isRecruiter ? `
+          ${iv.status !== 'cancelled' && iv.status !== 'completed' ? `
+            <button class="btn btn-outline btn-sm" onclick="editInterview(${iv.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>
+          ` : ''}
+        ` : `
+          ${iv.status === 'scheduled' ? `
+            <button class="btn btn-primary btn-sm" onclick="confirmInterview(${iv.id})">✓ Confirm</button>
+          ` : ''}
+          ${iv.status === 'scheduled' || iv.status === 'confirmed' ? `
+            <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>
+          ` : ''}
+        `}
+      </div>
+    </div>`;
+}
+
+function openScheduleModal() {
+  document.getElementById('s-app-id').value='';
+  document.getElementById('s-datetime').value='';
+  document.getElementById('s-link').value='';
+  document.getElementById('s-location').value='';
+  document.getElementById('s-notes').value='';
+  document.getElementById('schedule-modal').classList.remove('hidden');
+}
+function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); }
+
+async function scheduleInterview() {
+  const appId = parseInt(document.getElementById('s-app-id').value);
+  const datetime = document.getElementById('s-datetime').value;
+  if (!appId || !datetime) { showToast('Application ID and date/time are required', 'error'); return; }
+  const btn = document.getElementById('schedule-save-btn');
+  btn.disabled=true; btn.textContent='Scheduling...';
+  try {
+    await InterviewAPI.schedule({
+      application_id: appId,
+      scheduled_at: new Date(datetime).toISOString(),
+      duration_minutes: parseInt(document.getElementById('s-duration').value),
+      meeting_link: document.getElementById('s-link').value||null,
+      location: document.getElementById('s-location').value||null,
+      notes: document.getElementById('s-notes').value||null,
+    });
+    showToast('Interview scheduled! Candidate notified.', 'success');
+    closeScheduleModal();
+    loadInterviews();
+  } catch(err) { showToast(err.message, 'error'); }
+  finally { btn.disabled=false; btn.textContent='Schedule →'; }
+}
+
+async function confirmInterview(id) {
+  try {
+    await InterviewAPI.confirm(id);
+    showToast('Interview confirmed!', 'success');
+    loadInterviews();
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+async function cancelInterview(id) {
+  if (!confirm('Cancel this interview?')) return;
+  try {
+    await InterviewAPI.cancel(id);
+    showToast('Interview cancelled', 'success');
+    loadInterviews();
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+function editInterview(id) {
+  showToast('Edit interview — open schedule modal with pre-filled data', 'info');
+}
+</script>
+</body>
+</html>

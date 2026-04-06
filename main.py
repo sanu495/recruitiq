@@ -20,7 +20,6 @@ app.add_middleware(
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-
 # Routers
 app.include_router(auth.router)
 app.include_router(jobs.router)

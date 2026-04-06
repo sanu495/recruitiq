@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecruitIQ — Notifications</title>
+<!-- ── Favicon ─────────────────────────────────────────── -->
+<link rel="icon" href="../favicon/favicon.ico">
+<link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon/favicon-32x32.png">
+<link rel="apple-touch-icon"                href="../favicon/apple-touch-icon.png">
+<link rel="manifest"                        href="../favicon/site.webmanifest">
+<meta name="theme-color"                    content="#8B5CF6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <main class="page-content">
+
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h2>Notifications</h2>
+          <p id="notif-count-text">Loading...</p>
+        </div>
+        <button class="btn btn-outline" onclick="markAllRead()">✓ Mark All Read</button>
+      </div>
+
+      <div id="notif-container">
+        <div style="text-align:center;padding:60px;"><div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+requireAuth();
+buildSidebar('notifications');
+buildTopbar('Notifications','Your activity updates');
+
+let allNotifs = [];
+
+async function loadNotifications() {
+  try {
+    allNotifs = await NotifAPI.list();
+    const unread = allNotifs.filter(n => !n.is_read).length;
+    document.getElementById('notif-count-text').textContent =
+      `${allNotifs.length} total · ${unread} unread`;
+    renderNotifs(allNotifs);
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+function renderNotifs(notifs) {
+  const container = document.getElementById('notif-container');
+  if (notifs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔔</div>
+        <h3>No notifications yet</h3>
+        <p>You'll see updates about your applications and interviews here</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:720px;">
+      ${notifs.map(n => `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:var(--radius-md);
+             background:${n.is_read ? 'var(--bg-card)' : 'rgba(139,92,246,0.08)'};
+             border:1px solid ${n.is_read ? 'var(--border)' : 'rgba(139,92,246,0.2)'};
+             cursor:pointer;transition:all 0.2s;"
+             onclick="readOne(${n.id}, this)"
+             onmouseover="this.style.borderColor='var(--border-active)'" onmouseout="this.style.borderColor='${n.is_read?'var(--border)':'rgba(139,92,246,0.2)'}'">
+          <div style="width:8px;height:8px;border-radius:50%;background:${n.is_read?'var(--text-muted)':'var(--violet)'};margin-top:4px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;color:var(--text-primary);line-height:1.5;${n.is_read?'':'font-weight:500;'}">${n.message}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${formatDateTime(n.created_at)}</div>
+          </div>
+          <button onclick="event.stopPropagation();deleteNotif(${n.id},this.closest('[onclick]'))"
+            style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0;opacity:0.5;" title="Delete">×</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function readOne(id, el) {
+  await NotifAPI.markRead(id).catch(()=>{});
+  el.style.background = 'var(--bg-card)';
+  el.style.borderColor = 'var(--border)';
+  el.querySelector('div').style.background = 'var(--text-muted)';
+}
+
+async function deleteNotif(id, el) {
+  try {
+    await NotifAPI.delete(id);
+    el.remove();
+    allNotifs = allNotifs.filter(n => n.id !== id);
+    const unread = allNotifs.filter(n => !n.is_read).length;
+    document.getElementById('notif-count-text').textContent =
+      `${allNotifs.length} total · ${unread} unread`;
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+async function markAllRead() {
+  try {
+    await NotifAPI.markAllRead();
+    showToast('All notifications marked as read', 'success');
+    loadNotifications();
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+loadNotifications();
+</script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecruitIQ — My Applications</title>
+<!-- ── Favicon ─────────────────────────────────────────── -->
+<link rel="icon" href="../favicon/favicon.ico">
+<link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon/favicon-32x32.png">
+<link rel="apple-touch-icon"                href="../favicon/apple-touch-icon.png">
+<link rel="manifest"                        href="../favicon/site.webmanifest">
+<meta name="theme-color"                    content="#8B5CF6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <main class="page-content">
+
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h2>My Applications</h2>
+          <p>Track all your job applications and their status</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.location.href='jobs.html'">Browse Jobs →</button>
+      </div>
+
+      <!-- FILTER TABS -->
+      <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="filter-all" onclick="filterApps('all')">All</button>
+        <button class="btn btn-ghost btn-sm" id="filter-applied" onclick="filterApps('applied')">Applied</button>
+        <button class="btn btn-ghost btn-sm" id="filter-screening" onclick="filterApps('screening')">Screening</button>
+        <button class="btn btn-ghost btn-sm" id="filter-interview" onclick="filterApps('interview')">Interview</button>
+        <button class="btn btn-ghost btn-sm" id="filter-offer" onclick="filterApps('offer')">Offer</button>
+        <button class="btn btn-ghost btn-sm" id="filter-hired" onclick="filterApps('hired')">Hired</button>
+        <button class="btn btn-ghost btn-sm" id="filter-rejected" onclick="filterApps('rejected')">Rejected</button>
+      </div>
+
+      <div id="apps-container">
+        <div style="text-align:center;padding:60px;"><div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- APP DETAIL MODAL -->
+<div class="modal-overlay hidden" id="app-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-job-title">Application Details</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+requireAuth(['candidate']);
+buildSidebar('applications');
+buildTopbar('My Applications', 'Track your job hunt journey');
+
+let allApps = [];
+let currentFilter = 'all';
+
+async function loadApps() {
+  try {
+    allApps = await AppAPI.myApps();
+    filterApps('all');
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+function filterApps(stage) {
+  currentFilter = stage;
+
+  // Update tab buttons
+  ['all','applied','screening','interview','offer','hired','rejected'].forEach(s => {
+    const btn = document.getElementById(`filter-${s}`);
+    if (s === stage) {
+      btn.className = 'btn btn-primary btn-sm';
+    } else {
+      btn.className = 'btn btn-ghost btn-sm';
+    }
+  });
+
+  const filtered = stage === 'all' ? allApps : allApps.filter(a => a.stage === stage);
+  renderApps(filtered);
+}
+
+function renderApps(apps) {
+  const container = document.getElementById('apps-container');
+  if (apps.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>${currentFilter==='all' ? "No applications yet" : `No ${currentFilter} applications`}</h3>
+        <p>${currentFilter==='all' ? "Start browsing jobs and apply!" : "No applications in this stage"}</p>
+        ${currentFilter==='all' ? `<button class="btn btn-primary" onclick="window.location.href='jobs.html'">Browse Jobs</button>` : ''}
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${apps.map(a => appCard(a)).join('')}
+    </div>`;
+}
+
+function appCard(a) {
+  const score = a.ai_score;
+  const scoreColor = score != null ? getScoreColor(score) : null;
+  const progressMap = {applied:1,screening:2,interview:3,offer:4,hired:5,rejected:0};
+  const progress = progressMap[a.stage] || 0;
+
+  return `
+    <div class="card" style="cursor:pointer;" onclick="showDetail(${a.id})"
+         onmouseover="this.style.borderColor='var(--border-active)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:var(--gradient-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💼</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:2px;">Job #${a.job_id}</div>
+            <div style="font-size:12px;color:var(--text-muted);">Applied ${formatDate(a.applied_at)}</div>
+            ${a.cover_letter ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📝 Cover letter included</div>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          ${stageBadge(a.stage)}
+          ${score != null
+            ? `<div style="font-size:13px;font-weight:700;color:${scoreColor};">AI: ${score}/100</div>`
+            : `<span class="badge" style="background:var(--bg-input);color:var(--text-muted);font-size:10px;">Not screened</span>`}
+        </div>
+      </div>
+
+      ${a.stage !== 'rejected' && a.stage !== 'hired' ? `
+        <div style="margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:6px;">
+            <span>Applied</span><span>Screening</span><span>Interview</span><span>Offer</span><span>Hired</span>
+          </div>
+          <div style="height:4px;background:var(--border);border-radius:2px;">
+            <div style="height:4px;width:${progress*25}%;background:var(--gradient);border-radius:2px;transition:width 0.3s;"></div>
+          </div>
+        </div>` : a.stage === 'hired' ? `
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(34,197,94,0.1);border-radius:8px;border:1px solid rgba(34,197,94,0.2);">
+          <span style="color:var(--success);font-weight:600;font-size:13px;">🎉 Congratulations! You got hired!</span>
+        </div>` : `
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.15);">
+          <span style="color:var(--danger);font-size:12px;">Thank you for applying. Keep exploring other opportunities!</span>
+        </div>`}
+
+      ${['applied','screening'].includes(a.stage) ? `
+        <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();withdrawApp(${a.id})">Withdraw Application</button>
+        </div>` : ''}
+    </div>`;
+}
+
+async function showDetail(id) {
+  const app = allApps.find(a => a.id === id);
+  if (!app) return;
+  document.getElementById('modal-job-title').textContent = `Application — Job #${app.job_id}`;
+
+  const score = app.ai_score;
+  const sc = score != null ? getScoreColor(score) : null;
+
+  document.getElementById('modal-content').innerHTML = `
+    <div style="display:grid;gap:14px;">
+      <div style="display:flex;justify-content:space-between;">
+        <div><div style="font-size:12px;color:var(--text-muted);">Status</div><div style="margin-top:4px;">${stageBadge(app.stage)}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:var(--text-muted);">Applied On</div><div style="font-weight:600;margin-top:4px;">${formatDate(app.applied_at)}</div></div>
+      </div>
+
+      ${score != null ? `
+        <div class="card" style="padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:600;">AI Resume Score</span>
+            <span style="font-size:22px;font-weight:800;color:${sc};">${score}<small style="font-size:14px;">/100</small></span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;margin-bottom:10px;">
+            <div style="height:6px;width:${score}%;background:${sc};border-radius:3px;"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:${sc};margin-bottom:6px;">${getScoreLabel(score)}</div>
+          ${app.ai_feedback ? `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${app.ai_feedback}</div>` : ''}
+        </div>` : `
+        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;border:1px dashed var(--border);border-radius:10px;">
+          Your resume is pending AI screening by the recruiter
+        </div>`}
+
+      ${app.cover_letter ? `
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:8px;">Your Cover Letter</div>
+        <div style="padding:14px;background:var(--bg-card-hover);border-radius:10px;font-size:13px;color:var(--text-secondary);line-height:1.6;">${app.cover_letter}</div></div>` : ''}
+
+      ${app.resume_path ? `
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg-card-hover);border-radius:10px;">
+          <span style="font-size:20px;">📄</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;">Resume Submitted</div>
+            <div style="font-size:11px;color:var(--text-muted);">Uploaded with your application</div>
+          </div>
+        </div>` : ''}
+    </div>`;
+
+  document.getElementById('app-modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('app-modal').classList.add('hidden'); }
+
+async function withdrawApp(id) {
+  if (!confirm('Withdraw this application? This cannot be undone.')) return;
+  try {
+    await AppAPI.withdraw(id);
+    showToast('Application withdrawn', 'success');
+    closeModal();
+    loadApps();
+  } catch(err) { showToast(err.message, 'error'); }
+}
+
+loadApps();
+</script>
+</body>
+</html>
