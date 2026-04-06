@@ -78,8 +78,10 @@ const AuthAPI = {
   logout() {
     Token.remove();
     User.remove();
-    window.location.href = '../index.html';
-  },
+    const root = window.location.pathname.includes('/dashboard/') || 
+                 window.location.pathname.includes('/pages/') ? '../' : './';
+    window.location.href = root + 'index.html';
+},
 };
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────

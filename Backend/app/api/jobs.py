@@ -59,6 +59,13 @@ def list_jobs(search: Optional[str] = Query(None, description="Search by title  
  
     return jobs
 
+# ── My Posted Jobs (Recruiter) ─────────────────────────────────────────────────
+
+@router.get("/my/posted", response_model=List[JobOut])
+def my_posted_jobs(current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(Job, session)
+    return dal.get_many_by_field("recruiter_id", current_user.id)
+
 # ── Get Single Job ─────────────────────────────────────────────────────────────
 
 @router.get("/{job_id}", response_model=JobOut)
@@ -93,13 +100,6 @@ def delete_job(job_id: int, current_user: User = Depends(require_role("recruiter
     
     dal.delete(job_id)
     return {"message":"Job deleted successfully"}
-
-# ── My Posted Jobs (Recruiter) ─────────────────────────────────────────────────
-
-@router.get("/my/posted", response_model=List[JobOut])
-def my_posted_jobs(current_user: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
-    dal = GenericDal(Job, session)
-    return dal.get_many_by_field("recruiter_id", current_user.id)
 
 # ── Close / Pause / Reopen Job ─────────────────────────────────────────────────
 

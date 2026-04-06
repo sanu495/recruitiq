@@ -25,7 +25,7 @@ def schedule_interview(data: InterviewCreate, current_user: User = Depends(requi
         raise HTTPException(status_code=400, detail=f"Cannot schedule interview for stage: {application.stage}")
     
     # Check no duplicate scheduled interview for same application
-    existing = session.exec(select(InterviewSlot.application_id == data.application_id, InterviewSlot.status == "scheduled")).first()
+    existing = session.exec(select(InterviewSlot).where(InterviewSlot.application_id == data.application_id, InterviewSlot.status == "scheduled")).first()
 
     if existing:
         raise HTTPException(status_code=400, detail="An interview is already scheduled for this candidate. Update or cancel it first.")
@@ -73,6 +73,21 @@ def list_interviews(current_user: User = Depends(get_current_user), session: Ses
         # Candidate sees their own interviews only
         app_ids = [a.id for a in session.exec(select(Application).where(Application.candidate_id == current_user.id)).all()]
         slots = session.exec(select(InterviewSlot).where(InterviewSlot.application_id.in_(app_ids)).order_by(InterviewSlot.scheduled_at)).all() if app_ids else []
+ 
+    return slots
+
+# ── Get Upcoming Interviews ────────────────────────────────────────────────────
+
+@router.get("/upcoming/list", response_model=List[InterviewOut])
+def upcoming_interviews(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    """Returns only upcoming (not cancelled/completed) interviews."""
+ 
+    if current_user.role in ("recruiter", "admin"):
+        slots = session.exec(select(InterviewSlot).where(InterviewSlot.scheduled_at >= datetime.utcnow(), InterviewSlot.status.in_(["scheduled", "confirmed"])).order_by(InterviewSlot.scheduled_at)).all()
+
+    else:
+        app_ids = [a.id for a in session.exec(select(Application).where(Application.candidate_id == current_user.id)).all()]
+        slots = session.exec(select(InterviewSlot).where(InterviewSlot.application_id.in_(app_ids),InterviewSlot.scheduled_at >= datetime.utcnow(),InterviewSlot.status.in_(["scheduled", "confirmed"])).order_by(InterviewSlot.scheduled_at)).all() if app_ids else []
  
     return slots
 
@@ -189,21 +204,7 @@ def cancel_interview(slot_id: int, current_user: User = Depends(get_current_user
         notif_dal.create(Notification(user_id=application.candidate_id, message=(f"[{job.title}] Your interview scheduled on " f"{slot.scheduled_at.strftime('%d %b %Y at %H:%M')} " f"has been cancelled.")))
  
     return updated
- 
-# ── Get Upcoming Interviews ────────────────────────────────────────────────────
 
-@router.get("/upcoming/list", response_model=List[InterviewOut])
-def upcoming_interviews(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Returns only upcoming (not cancelled/completed) interviews."""
- 
-    if current_user.role in ("recruiter", "admin"):
-        slots = session.exec(select(InterviewSlot).where(InterviewSlot.scheduled_at >= datetime.utcnow(), InterviewSlot.status.in_(["scheduled", "confirmed"])).order_by(InterviewSlot.scheduled_at)).all()
-
-    else:
-        app_ids = [a.id for a in session.exec(select(Application).where(Application.candidate_id == current_user.id)).all()]
-        slots = session.exec(select(InterviewSlot).where(InterviewSlot.application_id.in_(app_ids),InterviewSlot.scheduled_at >= datetime.utcnow(),InterviewSlot.status.in_(["scheduled", "confirmed"])).order_by(InterviewSlot.scheduled_at)).all() if app_ids else []
- 
-    return slots
 
 
 

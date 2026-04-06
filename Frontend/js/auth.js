@@ -41,7 +41,7 @@ function requireAuth(allowedRoles = []) {
     if (path.includes('/dashboard/') || path.includes('/pages/')) {
       return '../';
     }
-    return '';
+    return './';
   }
   
   // ── Toast System ──────────────────────────────────────────────────────────────
@@ -148,6 +148,8 @@ function requireAuth(allowedRoles = []) {
     const topbar = document.getElementById('topbar');
     if (!topbar) return;
   
+    const root = getRootPath(); // ← store it once here
+
     topbar.innerHTML = `
       <div class="topbar-left">
         <button class="notif-btn" id="menu-toggle" style="display:none;" onclick="toggleSidebar()">
@@ -167,7 +169,7 @@ function requireAuth(allowedRoles = []) {
           </svg>
           <input type="text" placeholder="Search...">
         </div>
-        <div class="notif-btn" id="notif-btn" onclick="window.location.href='${getRootPath()}pages/notifications.html'">
+        <div class="notif-btn" id="notif-btn" onclick="window.location.href='${root}pages/notifications.html'">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -176,7 +178,7 @@ function requireAuth(allowedRoles = []) {
         </div>
       </div>
     `;
-  }
+}
   
   // ── Notification Badge ────────────────────────────────────────────────────────
   async function loadNotifBadge() {
