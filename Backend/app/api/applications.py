@@ -92,6 +92,24 @@ async def apply_to_job(job_id: int = Form(...), cover_letter: str = Form(""), re
 
     return application
 
+# ── Export Applicants as CSV ───────────────────────────────────────────────────
+
+@router.get("/job/{job_id}/export")
+def export_csv(job_id: int, _: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
+    dal = GenericDal(Application, session)
+    apps = dal.get_many_by_field("job_id", job_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Application ID", "Candidate ID", "Stage", "AI Score", "AI Feedback", "Applied At"])
+
+    for a in apps:
+        writer.writerow([ a.id, a.candidate_id, a.stage, a.ai_score or "N/A", a.ai_feedback or "N/A", a.applied_at])
+
+    output.seek(0)   
+    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=job_{job_id}_applicants.csv"}) 
+
+
 # ── My Applications (Candidate) ────────────────────────────────────────────────
 
 @router.get("/my", response_model=List[ApplicationOut])
@@ -154,23 +172,6 @@ def add_note(app_id: int, data: NoteCreate, current_user: User = Depends(require
 def get_notes(app_id: int, _: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
     note_dal = GenericDal(CandidateNote, session)
     return note_dal.get_many_by_field("application_id", app_id)
-
-# ── Export Applicants as CSV ───────────────────────────────────────────────────
-
-@router.get("/job/{job_id}/export")
-def export_csv(job_id: int, _: User = Depends(require_role("recruiter", "admin")), session: Session = Depends(get_session)):
-    dal = GenericDal(Application, session)
-    apps = dal.get_many_by_field("job_id", job_id)
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Application ID", "Candidate ID", "Stage", "AI Score", "AI Feedback", "Applied At"])
-
-    for a in apps:
-        writer.writerow([ a.id, a.candidate_id, a.stage, a.ai_score or "N/A", a.ai_feedback or "N/A", a.applied_at])
-
-    output.seek(0)   
-    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=job_{job_id}_applicants.csv"}) 
 
 # ── Trigger AI Screening Manually (Recruiter) ─────────────────────────────────
 

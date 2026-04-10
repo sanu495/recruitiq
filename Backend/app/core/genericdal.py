@@ -36,12 +36,15 @@ class GenericDal(Generic[T]):
     def update(self, id: int, obj_data: dict) -> Optional[T]:
         db_obj = self.get(id)
         for key, value in obj_data.items():
+        # Note: None values are skipped intentionally (use delete for full removal)
+        # If you need to clear a field, pass {"field": ""} not {"field": None}
             if value is not None:
                 setattr(db_obj, key, value)
         self.db_session.add(db_obj)
         self.db_session.commit()
         self.db_session.refresh(db_obj)
         return db_obj
+   
 
     # ── Delete ─────────────────────────────────────────────────────────────────
     def delete(self, id: int) -> bool:

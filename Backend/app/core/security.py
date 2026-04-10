@@ -53,7 +53,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
     user = session.get(User, int(user_id))
 
     if not user:
-        raise HTTPException(status_code=403, detail="Account is in active")
+        raise HTTPException(status_code=403, detail="Account is inactive")
     
     return user
 

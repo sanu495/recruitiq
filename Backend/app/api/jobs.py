@@ -51,13 +51,17 @@ def list_jobs(search: Optional[str] = Query(None, description="Search by title  
  
     # Auto-close expired jobs
     today = date.today()
+    changed = False
     for job in jobs:
         if job.deadline and job.deadline < today and job.status == JobStatus.open:
             job.status = JobStatus.closed
             session.add(job)
-    session.commit()
- 
+            changed = True
+    if changed:
+        session.commit()
+
     return jobs
+    
 
 # ── My Posted Jobs (Recruiter) ─────────────────────────────────────────────────
 

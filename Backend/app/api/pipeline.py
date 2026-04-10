@@ -41,8 +41,16 @@ def update_stage(app_id: int, data: StageUpdate, current_user: User = Depends(re
 
     # Validate stage transition
     stage_order = ["applied", "screening", "interview", "offer", "hired", "rejected"]
-    current_index = stage_order.index(application.stage)
-    new_index = stage_order.index(data.stage)
+
+    try:
+        current_index = stage_order.index(application.stage)
+        new_index = stage_order.index(data.stage)
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid stage value: {application.stage}")
+
+    if data.stage != "rejected" and new_index < current_index:
+        raise HTTPException(status_code=400, detail=f"Cannot move backwards from '{application.stage}' to '{data.stage}'")
 
     # Allow any move forward + allow rejected from any stage
     if data.stage != "rejected" and new_index < current_index:

@@ -25,6 +25,18 @@ def unread_count(current_user: User = Depends(get_current_user), session: Sessio
     notifs = session.exec(select(Notification).where(Notification.user_id == current_user.id, Notification.is_read == False)).all()
     return {"unread_count": len(notifs)}
 
+# ── Mark All as Read ───────────────────────────────────────────────────────────
+
+@router.patch("/mark-all-read")
+def mark_all_read(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    notifs = session.exec(select(Notification).where(Notification.user_id == current_user.id, Notification.is_read == False)).all()
+    dal = GenericDal(Notification, session)
+
+    for notif in notifs:
+        dal.update(notif.id, {"is_read":True})
+
+    return {"message":f"{len(notifs)} notification marked as read"}
+
 # ── Mark Single Notification as Read ──────────────────────────────────────────
 
 @router.patch("/{notif_id}/read")
@@ -38,18 +50,6 @@ def mark_read(notif_id: int, current_user: User = Depends(get_current_user), ses
     
     dal.update(notif_id, {"is_read":True})
     return {"message":"Marked as read"}
-
-# ── Mark All as Read ───────────────────────────────────────────────────────────
-
-@router.patch("/mark-all-read")
-def mark_all_read(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
-    notifs = session.exec(select(Notification).where(Notification.user_id == current_user.id, Notification.is_read == False)).all()
-    dal = GenericDal(Notification, session)
-
-    for notif in notifs:
-        dal.update(notif.id, {"is_read":True})
-
-    return {"message":f"{len(notifs)} notification marked as read"}
 
 # ── Delete a Notification ──────────────────────────────────────────────────────
 @router.delete("/{notif_id}")
