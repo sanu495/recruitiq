@@ -80,7 +80,7 @@ const AuthAPI = {
     User.remove();
     const root = window.location.pathname.includes('/dashboard/') || 
                  window.location.pathname.includes('/pages/') ? '../' : './';
-    window.location.href = root + 'index.html';
+    window.location.href = root + '/login';
 },
 };
 
