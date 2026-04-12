@@ -1,16 +1,17 @@
-const API_BASE = 'http://127.0.0.1:8000';
+// FIX: Empty string = same origin (works for both local dev via proxy and production)
+const API_BASE = '';
 
 // ── Token Management ──────────────────────────────────────────────────────────
 const Token = {
-  get:    ()      => localStorage.getItem('riq_token'),
-  set:    (t)     => localStorage.setItem('riq_token', t),
-  remove: ()      => localStorage.removeItem('riq_token'),
+  get:    ()  => localStorage.getItem('riq_token'),
+  set:    (t) => localStorage.setItem('riq_token', t),
+  remove: ()  => localStorage.removeItem('riq_token'),
 };
 
 const User = {
-  get:    ()      => JSON.parse(localStorage.getItem('riq_user') || 'null'),
-  set:    (u)     => localStorage.setItem('riq_user', JSON.stringify(u)),
-  remove: ()      => localStorage.removeItem('riq_user'),
+  get:    ()  => JSON.parse(localStorage.getItem('riq_user') || 'null'),
+  set:    (u) => localStorage.setItem('riq_user', JSON.stringify(u)),
+  remove: ()  => localStorage.removeItem('riq_user'),
 };
 
 // ── Core Fetch Wrapper ────────────────────────────────────────────────────────
@@ -75,27 +76,26 @@ const AuthAPI = {
     return apiCall('GET', '/api/auth/me');
   },
 
+  // FIX: Simplified logout — always redirect to /login (clean route, no .html)
   logout() {
     Token.remove();
     User.remove();
-    const root = window.location.pathname.includes('/dashboard/') || 
-                 window.location.pathname.includes('/pages/') ? '../' : './';
-    window.location.href = root + '/login';
-},
+    window.location.href = '/login';
+  },
 };
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 const JobsAPI = {
-  list:       (params = {}) => {
+  list:      (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return apiCall('GET', `/api/jobs${q ? '?' + q : ''}`);
   },
-  get:        (id)          => apiCall('GET',    `/api/jobs/${id}`),
-  create:     (data)        => apiCall('POST',   '/api/jobs', data),
-  update:     (id, data)    => apiCall('PUT',    `/api/jobs/${id}`, data),
-  delete:     (id)          => apiCall('DELETE', `/api/jobs/${id}`),
-  myPosted:   ()            => apiCall('GET',    '/api/jobs/my/posted'),
-  setStatus:  (id, status)  => apiCall('PATCH',  `/api/jobs/${id}/status?status=${status}`),
+  get:       (id)         => apiCall('GET',    `/api/jobs/${id}`),
+  create:    (data)       => apiCall('POST',   '/api/jobs', data),
+  update:    (id, data)   => apiCall('PUT',    `/api/jobs/${id}`, data),
+  delete:    (id)         => apiCall('DELETE', `/api/jobs/${id}`),
+  myPosted:  ()           => apiCall('GET',    '/api/jobs/my/posted'),
+  setStatus: (id, status) => apiCall('PATCH',  `/api/jobs/${id}/status?status=${status}`),
 };
 
 // ── Applications ──────────────────────────────────────────────────────────────
@@ -107,24 +107,24 @@ const AppAPI = {
     form.append('resume', resumeFile);
     return apiCall('POST', '/api/applications', form, true);
   },
-  myApps:       ()         => apiCall('GET',    '/api/applications/my'),
-  forJob:       (jobId)    => apiCall('GET',    `/api/applications/job/${jobId}`),
-  get:          (id)       => apiCall('GET',    `/api/applications/${id}`),
-  withdraw:     (id)       => apiCall('DELETE', `/api/applications/${id}`),
-  addNote:      (id, note) => apiCall('POST',   `/api/applications/${id}/notes`, { note }),
-  getNotes:     (id)       => apiCall('GET',    `/api/applications/${id}/notes`),
-  screen:       (id)       => apiCall('POST',   `/api/applications/${id}/screen`),
-  analysis:     (id)       => apiCall('GET',    `/api/applications/${id}/analysis`),
-  exportCSV:    (jobId)    => `${API_BASE}/api/applications/job/${jobId}/export`,
+  myApps:    ()         => apiCall('GET',    '/api/applications/my'),
+  forJob:    (jobId)    => apiCall('GET',    `/api/applications/job/${jobId}`),
+  get:       (id)       => apiCall('GET',    `/api/applications/${id}`),
+  withdraw:  (id)       => apiCall('DELETE', `/api/applications/${id}`),
+  addNote:   (id, note) => apiCall('POST',   `/api/applications/${id}/notes`, { note }),
+  getNotes:  (id)       => apiCall('GET',    `/api/applications/${id}/notes`),
+  screen:    (id)       => apiCall('POST',   `/api/applications/${id}/screen`),
+  analysis:  (id)       => apiCall('GET',    `/api/applications/${id}/analysis`),
+  exportCSV: (jobId)    => `${API_BASE}/api/applications/job/${jobId}/export`,
 };
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 const PipelineAPI = {
-  forJob:      (jobId)          => apiCall('GET',   `/api/pipeline/job/${jobId}`),
-  updateStage: (appId, stage)   => apiCall('PATCH', `/api/pipeline/${appId}/stage`, { stage }),
-  summary:     (jobId)          => apiCall('GET',   `/api/pipeline/job/${jobId}/summary`),
-  overview:    ()               => apiCall('GET',   '/api/pipeline/overview'),
-  bulkReject:  (jobId)          => apiCall('PATCH', `/api/pipeline/job/${jobId}/bulk-reject`),
+  forJob:      (jobId)        => apiCall('GET',   `/api/pipeline/job/${jobId}`),
+  updateStage: (appId, stage) => apiCall('PATCH', `/api/pipeline/${appId}/stage`, { stage }),
+  summary:     (jobId)        => apiCall('GET',   `/api/pipeline/job/${jobId}/summary`),
+  overview:    ()             => apiCall('GET',   '/api/pipeline/overview'),
+  bulkReject:  (jobId)        => apiCall('PATCH', `/api/pipeline/job/${jobId}/bulk-reject`),
 };
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
@@ -143,20 +143,20 @@ const AnalyticsAPI = {
 
 // ── Interviews ────────────────────────────────────────────────────────────────
 const InterviewAPI = {
-  schedule:  (data)   => apiCall('POST',  '/api/interviews', data),
-  list:      ()       => apiCall('GET',   '/api/interviews'),
-  get:       (id)     => apiCall('GET',   `/api/interviews/${id}`),
-  update:    (id, d)  => apiCall('PUT',   `/api/interviews/${id}`, d),
-  confirm:   (id)     => apiCall('PATCH', `/api/interviews/${id}/confirm`),
-  cancel:    (id)     => apiCall('PATCH', `/api/interviews/${id}/cancel`),
-  upcoming:  ()       => apiCall('GET',   '/api/interviews/upcoming/list'),
+  schedule: (data)  => apiCall('POST',  '/api/interviews', data),
+  list:     ()      => apiCall('GET',   '/api/interviews'),
+  get:      (id)    => apiCall('GET',   `/api/interviews/${id}`),
+  update:   (id, d) => apiCall('PUT',   `/api/interviews/${id}`, d),
+  confirm:  (id)    => apiCall('PATCH', `/api/interviews/${id}/confirm`),
+  cancel:   (id)    => apiCall('PATCH', `/api/interviews/${id}/cancel`),
+  upcoming: ()      => apiCall('GET',   '/api/interviews/upcoming/list'),
 };
 
 // ── Notifications ─────────────────────────────────────────────────────────────
 const NotifAPI = {
-  list:        ()   => apiCall('GET',   '/api/notifications'),
-  unreadCount: ()   => apiCall('GET',   '/api/notifications/unread-count'),
-  markRead:    (id) => apiCall('PATCH', `/api/notifications/${id}/read`),
-  markAllRead: ()   => apiCall('PATCH', '/api/notifications/mark-all-read'),
-  delete:      (id) => apiCall('DELETE',`/api/notifications/${id}`),
+  list:        ()   => apiCall('GET',    '/api/notifications'),
+  unreadCount: ()   => apiCall('GET',    '/api/notifications/unread-count'),
+  markRead:    (id) => apiCall('PATCH',  `/api/notifications/${id}/read`),
+  markAllRead: ()   => apiCall('PATCH',  '/api/notifications/mark-all-read'),
+  delete:      (id) => apiCall('DELETE', `/api/notifications/${id}`),
 };

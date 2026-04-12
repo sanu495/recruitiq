@@ -4,386 +4,84 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RecruitIQ — Smart Hiring Platform</title>
-<!-- ── Favicon ─────────────────────────────────────────── -->
-<link rel="icon" href="favicon/favicon.ico">
-<link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon/favicon-32x32.png">
-<link rel="apple-touch-icon"                href="../favicon/apple-touch-icon.png">
-<link rel="manifest"                        href="../favicon/site.webmanifest">
-<meta name="theme-color"                    content="#8B5CF6">
+<link rel="icon" href="/favicon/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
+<link rel="manifest" href="/favicon/site.webmanifest">
+<meta name="theme-color" content="#8B5CF6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg-page:       #0A0A0F;
-  --bg-card:       #13131F;
-  --bg-input:      #1A1A2E;
-  --border:        rgba(255,255,255,0.07);
-  --pink:          #D966F5;
-  --violet:        #8B5CF6;
-  --violet-light:  #A78BFA;
-  --gradient:      linear-gradient(135deg, #D966F5 0%, #8B5CF6 100%);
-  --text-primary:  #F1F0FF;
-  --text-secondary:#9B97B8;
-  --text-muted:    #5C5878;
-  --success:       #22C55E;
-  --danger:        #EF4444;
-  --font:          'Plus Jakarta Sans', system-ui, sans-serif;
-}
-
-html, body {
-  height: 100%;
-  font-family: var(--font);
-  background: var(--bg-page);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-}
-
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 16px;
-}
-
-/* ── Main container — compact card ── */
-.auth-container {
-  width: 100%;
-  max-width: 860px;
-  height: 540px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.1);
-}
-
-/* ── LEFT PANEL ── */
-.auth-left {
-  background: linear-gradient(150deg, #0D0A1E 0%, #150830 50%, #0A0420 100%);
-  padding: 28px 32px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-
-.auth-left::before {
-  content: '';
-  position: absolute;
-  width: 260px; height: 260px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(217,102,245,0.18) 0%, transparent 70%);
-  top: -60px; left: -60px;
-  pointer-events: none;
-}
-.auth-left::after {
-  content: '';
-  position: absolute;
-  width: 220px; height: 220px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%);
-  bottom: -50px; right: -50px;
-  pointer-events: none;
-}
-
-/* Logo — top left */
-.auth-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  z-index: 1;
-  margin-bottom: 0;
-}
-.auth-logo-icon {
-  width: 32px; height: 32px;
-  background: var(--gradient);
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 14px rgba(139,92,246,0.45);
-  flex-shrink: 0;
-}
-.auth-logo-icon svg { width: 18px; height: 18px; }
-.auth-logo-text {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.3px;
-}
-.auth-logo-text span {
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Center content */
-.auth-left-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-  padding: 12px 0 8px;
-}
-
-.auth-tagline {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.22;
-  color: #fff;
-  margin-bottom: 10px;
-  letter-spacing: -0.4px;
-}
-.auth-tagline span {
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.auth-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.65;
-  max-width: 250px;
-  margin-bottom: 20px;
-}
-
-.auth-features { display: flex; flex-direction: column; gap: 8px; }
-.auth-feature {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; color: rgba(255,255,255,0.72);
-}
-.auth-feature-dot {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: rgba(139,92,246,0.18);
-  border: 1px solid rgba(139,92,246,0.35);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.auth-feature-dot svg { width: 10px; height: 10px; }
-
-/* Stats row */
-.auth-stats {
-  display: flex; gap: 18px;
-  position: relative; z-index: 1;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-}
-.auth-stat-value { font-size: 18px; font-weight: 800; color: #fff; line-height: 1; }
-.auth-stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-.auth-stat-divider { width: 1px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
-
-/* ── RIGHT PANEL ── */
-.auth-right {
-  background: var(--bg-card);
-  padding: 24px 32px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow-y: auto;
-}
-
-/* Tabs */
-.auth-tabs {
-  display: flex;
-  background: var(--bg-input);
-  border-radius: 9px;
-  padding: 3px;
-  margin-bottom: 20px;
-}
-.auth-tab {
-  flex: 1; padding: 7px 10px;
-  text-align: center;
-  font-size: 12px; font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 7px;
-  transition: all 0.2s;
-  user-select: none;
-}
-.auth-tab.active {
-  background: var(--gradient);
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(139,92,246,0.4);
-}
-
-/* Form */
-.auth-heading {
-  font-size: 20px; font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 3px;
-  letter-spacing: -0.3px;
-}
-.auth-subheading {
-  font-size: 11px; color: var(--text-muted);
-  margin-bottom: 16px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.form-group { margin-bottom: 12px; }
-.form-label {
-  display: block; font-size: 11px; font-weight: 600;
-  color: var(--text-secondary); margin-bottom: 5px;
-  letter-spacing: 0.02em;
-}
-.form-control {
-  width: 100%; padding: 9px 12px;
-  background: var(--bg-input);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 12px; font-family: var(--font);
-  transition: all 0.18s; outline: none;
-}
-.form-control:focus {
-  border-color: var(--violet);
-  box-shadow: 0 0 0 2px rgba(139,92,246,0.14);
-}
-.form-control::placeholder { color: var(--text-muted); font-size: 12px; }
-
-.input-wrap { position: relative; }
-.input-wrap .form-control { padding-right: 36px; }
-.input-toggle {
-  position: absolute; right: 10px; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none;
-  color: var(--text-muted); cursor: pointer;
-  font-size: 13px; padding: 0; line-height: 1;
-}
-
-/* Role selector */
-.role-select {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 8px; margin-bottom: 12px;
-}
-.role-option {
-  padding: 8px 10px;
-  background: var(--bg-input);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 8px; cursor: pointer;
-  transition: all 0.18s; text-align: center;
-}
-.role-option.selected {
-  border-color: rgba(139,92,246,0.6);
-  background: rgba(139,92,246,0.1);
-}
-.role-option-icon { font-size: 16px; margin-bottom: 2px; }
-.role-option-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-.role-option.selected .role-option-label { color: var(--violet-light); }
-
-/* Submit button */
-.btn-auth {
-  width: 100%; padding: 11px;
-  background: var(--gradient);
-  border: none; border-radius: 9px;
-  color: #fff; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all 0.2s;
-  font-family: var(--font);
-  box-shadow: 0 4px 14px rgba(139,92,246,0.38);
-  margin-top: 2px;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.btn-auth:hover {
-  box-shadow: 0 6px 22px rgba(139,92,246,0.55);
-  transform: translateY(-1px);
-}
-.btn-auth:active { transform: translateY(0); }
-.btn-auth:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
-
-.spinner-sm {
-  width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Footer */
-.auth-footer {
-  text-align: center; margin-top: 12px;
-  font-size: 11px; color: var(--text-muted);
-}
-.auth-footer a {
-  color: var(--violet-light); font-weight: 600;
-  cursor: pointer; text-decoration: none;
-}
-.auth-footer a:hover { text-decoration: underline; }
-
-/* Error / Success */
-.msg-box {
-  border-radius: 7px; padding: 8px 12px;
-  font-size: 11px; font-weight: 500;
-  margin-bottom: 12px; display: none;
-}
-.msg-error {
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.25);
-  color: var(--danger);
-}
-.msg-success {
-  background: rgba(34,197,94,0.1);
-  border: 1px solid rgba(34,197,94,0.25);
-  color: var(--success);
-}
-
-/* Toast */
-.toast-container {
-  position: fixed; top: 16px; right: 16px;
-  z-index: 9999; display: flex; flex-direction: column; gap: 6px;
-}
-.toast {
-  padding: 10px 14px; border-radius: 8px;
-  font-size: 12px; font-weight: 500;
-  display: flex; align-items: center; gap: 8px;
-  min-width: 220px;
-  animation: slideIn 0.3s ease;
-}
-.toast-error   { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-.toast-success { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
-@keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-/* Label row for form-group label inline */
-.label-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 5px;
-}
-.label-row .form-label { margin-bottom: 0; }
-
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .auth-container { grid-template-columns: 1fr; height: auto; max-width: 400px; }
-  .auth-left { display: none; }
-  .auth-right { padding: 24px 20px; }
-  .form-row { grid-template-columns: 1fr; }
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg-page:#0A0A0F;--bg-card:#13131F;--bg-input:#1A1A2E;--border:rgba(255,255,255,0.07);--pink:#D966F5;--violet:#8B5CF6;--violet-light:#A78BFA;--gradient:linear-gradient(135deg,#D966F5 0%,#8B5CF6 100%);--text-primary:#F1F0FF;--text-secondary:#9B97B8;--text-muted:#5C5878;--success:#22C55E;--danger:#EF4444;--font:'Plus Jakarta Sans',system-ui,sans-serif}
+html,body{height:100%;font-family:var(--font);background:var(--bg-page);color:var(--text-primary);-webkit-font-smoothing:antialiased}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+.auth-container{width:100%;max-width:860px;height:540px;display:grid;grid-template-columns:1fr 1fr;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 64px rgba(0,0,0,0.7),0 0 0 1px rgba(139,92,246,0.1)}
+.auth-left{background:linear-gradient(150deg,#0D0A1E 0%,#150830 50%,#0A0420 100%);padding:28px 32px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.auth-left::before{content:'';position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(217,102,245,0.18) 0%,transparent 70%);top:-60px;left:-60px;pointer-events:none}
+.auth-left::after{content:'';position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,0.18) 0%,transparent 70%);bottom:-50px;right:-50px;pointer-events:none}
+.auth-logo{display:flex;align-items:center;gap:8px;position:relative;z-index:1}
+.auth-logo-icon{width:32px;height:32px;background:var(--gradient);border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(139,92,246,0.45);flex-shrink:0}
+.auth-logo-text{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px}
+.auth-logo-text span{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-left-body{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:1;padding:12px 0 8px}
+.auth-tagline{font-size:24px;font-weight:800;line-height:1.22;color:#fff;margin-bottom:10px;letter-spacing:-0.4px}
+.auth-tagline span{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-desc{font-size:12px;color:var(--text-secondary);line-height:1.65;max-width:250px;margin-bottom:20px}
+.auth-features{display:flex;flex-direction:column;gap:8px}
+.auth-feature{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,0.72)}
+.auth-feature-dot{width:20px;height:20px;border-radius:50%;background:rgba(139,92,246,0.18);border:1px solid rgba(139,92,246,0.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auth-stats{display:flex;gap:18px;position:relative;z-index:1;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07)}
+.auth-stat-value{font-size:18px;font-weight:800;color:#fff;line-height:1}
+.auth-stat-label{font-size:10px;color:var(--text-muted);margin-top:2px}
+.auth-stat-divider{width:1px;background:rgba(255,255,255,0.1);flex-shrink:0}
+.auth-right{background:var(--bg-card);padding:24px 32px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto}
+.auth-tabs{display:flex;background:var(--bg-input);border-radius:9px;padding:3px;margin-bottom:20px}
+.auth-tab{flex:1;padding:7px 10px;text-align:center;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;border-radius:7px;user-select:none}
+.auth-tab.active{background:var(--gradient);color:#fff;box-shadow:0 3px 10px rgba(139,92,246,0.4)}
+.auth-heading{font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:3px;letter-spacing:-0.3px}
+.auth-subheading{font-size:11px;color:var(--text-muted);margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{margin-bottom:12px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;letter-spacing:0.02em}
+.form-control{width:100%;padding:9px 12px;background:var(--bg-input);border:1px solid rgba(255,255,255,0.07);border-radius:8px;color:var(--text-primary);font-size:12px;font-family:var(--font);outline:none}
+.form-control:focus{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,0.14)}
+.form-control::placeholder{color:var(--text-muted);font-size:12px}
+.input-wrap{position:relative}
+.input-wrap .form-control{padding-right:36px}
+.input-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0;line-height:1}
+.role-select{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.role-option{padding:8px 10px;background:var(--bg-input);border:1px solid rgba(255,255,255,0.07);border-radius:8px;cursor:pointer;text-align:center}
+.role-option.selected{border-color:rgba(139,92,246,0.6);background:rgba(139,92,246,0.1)}
+.role-option-icon{font-size:16px;margin-bottom:2px}
+.role-option-label{font-size:11px;font-weight:600;color:var(--text-secondary)}
+.role-option.selected .role-option-label{color:var(--violet-light)}
+.btn-auth{width:100%;padding:11px;background:var(--gradient);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 14px rgba(139,92,246,0.38);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-auth:disabled{opacity:0.55;cursor:not-allowed}
+.spinner-sm{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-footer{text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted)}
+.auth-footer a{color:var(--violet-light);font-weight:600;cursor:pointer;text-decoration:none}
+.msg-box{border-radius:7px;padding:8px 12px;font-size:11px;font-weight:500;margin-bottom:12px;display:none}
+.msg-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:var(--danger)}
+.msg-success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:var(--success)}
+.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.label-row .form-label{margin-bottom:0}
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;min-width:220px}
+.toast-error{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)}
+.toast-success{background:rgba(34,197,94,0.15);color:var(--success);border:1px solid rgba(34,197,94,0.3)}
+@media(max-width:600px){.auth-container{grid-template-columns:1fr;height:auto;max-width:400px}.auth-left{display:none}.auth-right{padding:24px 20px}.form-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div id="toast-container" class="toast-container"></div>
-
 <div class="auth-container">
-
-  <!-- ── LEFT PANEL ── -->
   <div class="auth-left">
     <div class="auth-logo">
       <div class="auth-logo-icon">
-        <svg viewBox="0 0 24 24" fill="none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <rect x="2" y="4" width="7" height="14" rx="3.5" fill="white" opacity="0.95"/>
           <rect x="11" y="2" width="7" height="14" rx="3.5" fill="white" opacity="0.65"/>
           <circle cx="21" cy="18" r="3" fill="white" opacity="0.45"/>
@@ -391,103 +89,56 @@ body {
       </div>
       <div class="auth-logo-text">Recruit<span>IQ</span></div>
     </div>
-
     <div class="auth-left-body">
-      <div class="auth-tagline">
-        Hire Smarter<br>with <span>AI Power</span>
-      </div>
-      <p class="auth-desc">
-        The intelligent ATS that screens resumes, tracks candidates, and helps you find the perfect hire — faster.
-      </p>
+      <div class="auth-tagline">Hire Smarter<br>with <span>AI Power</span></div>
+      <p class="auth-desc">The intelligent ATS that screens resumes, tracks candidates, and helps you find the perfect hire — faster.</p>
       <div class="auth-features">
-        <div class="auth-feature">
-          <div class="auth-feature-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          AI-powered resume screening
-        </div>
-        <div class="auth-feature">
-          <div class="auth-feature-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          Visual hiring pipeline
-        </div>
-        <div class="auth-feature">
-          <div class="auth-feature-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          Smart analytics dashboard
-        </div>
-        <div class="auth-feature">
-          <div class="auth-feature-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          Interview scheduling
-        </div>
+        <div class="auth-feature"><div class="auth-feature-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>AI-powered resume screening</div>
+        <div class="auth-feature"><div class="auth-feature-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Visual hiring pipeline</div>
+        <div class="auth-feature"><div class="auth-feature-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Smart analytics dashboard</div>
+        <div class="auth-feature"><div class="auth-feature-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>Interview scheduling</div>
       </div>
     </div>
-
     <div class="auth-stats">
-      <div>
-        <div class="auth-stat-value">AI</div>
-        <div class="auth-stat-label">Resume Scoring</div>
-      </div>
+      <div><div class="auth-stat-value">AI</div><div class="auth-stat-label">Resume Scoring</div></div>
       <div class="auth-stat-divider"></div>
-      <div>
-        <div class="auth-stat-value">6</div>
-        <div class="auth-stat-label">Pipeline Stages</div>
-      </div>
+      <div><div class="auth-stat-value">6</div><div class="auth-stat-label">Pipeline Stages</div></div>
       <div class="auth-stat-divider"></div>
-      <div>
-        <div class="auth-stat-value">3</div>
-        <div class="auth-stat-label">User Roles</div>
-      </div>
+      <div><div class="auth-stat-value">3</div><div class="auth-stat-label">User Roles</div></div>
     </div>
   </div>
 
-  <!-- ── RIGHT PANEL ── -->
   <div class="auth-right">
-
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
       <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Create Account</div>
     </div>
-
-    <div class="msg-box msg-error"   id="error-msg"></div>
+    <div class="msg-box msg-error" id="error-msg"></div>
     <div class="msg-box msg-success" id="success-msg"></div>
 
     <!-- LOGIN -->
     <div id="login-form">
       <div class="auth-heading">Welcome back</div>
       <div class="auth-subheading">Sign in to your RecruitIQ account</div>
-
       <div class="form-group">
         <label class="form-label">Email address</label>
         <input type="email" id="login-email" class="form-control" placeholder="you@example.com">
       </div>
-
       <div class="form-group">
-        <div class="label-row">
-          <label class="form-label">Password</label>
-        </div>
+        <div class="label-row"><label class="form-label">Password</label></div>
         <div class="input-wrap">
           <input type="password" id="login-password" class="form-control" placeholder="Enter your password">
-          <button class="input-toggle" onclick="togglePwd('login-password', this)" type="button">👁</button>
+          <button class="input-toggle" onclick="togglePwd('login-password',this)" type="button">👁</button>
         </div>
       </div>
-
       <button class="btn-auth" id="login-btn" onclick="handleLogin()">Sign In</button>
-
-      <div class="auth-footer">
-        Don't have an account? <a onclick="switchTab('register')">Create one</a>
-      </div>
+      <div class="auth-footer">Don't have an account? <a onclick="switchTab('register')">Create one</a></div>
     </div>
 
     <!-- REGISTER -->
-    <div id="register-form" style="display:none;">
+    <div id="register-form" style="display:none">
       <div class="auth-heading">Create account</div>
       <div class="auth-subheading">Join RecruitIQ today — it's free</div>
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Full name</label>
@@ -498,20 +149,17 @@ body {
           <input type="tel" id="reg-phone" class="form-control" placeholder="9876543210">
         </div>
       </div>
-
       <div class="form-group">
         <label class="form-label">Email address</label>
         <input type="email" id="reg-email" class="form-control" placeholder="you@example.com">
       </div>
-
       <div class="form-group">
         <label class="form-label">Password</label>
         <div class="input-wrap">
           <input type="password" id="reg-password" class="form-control" placeholder="Create a strong password">
-          <button class="input-toggle" onclick="togglePwd('reg-password', this)" type="button">👁</button>
+          <button class="input-toggle" onclick="togglePwd('reg-password',this)" type="button">👁</button>
         </div>
       </div>
-
       <div class="form-group">
         <label class="form-label">I am a</label>
         <div class="role-select">
@@ -525,31 +173,24 @@ body {
           </div>
         </div>
       </div>
-
       <button class="btn-auth" id="register-btn" onclick="handleRegister()">Create Account</button>
-
-      <div class="auth-footer">
-        Already have an account? <a onclick="switchTab('login')">Sign in</a>
-      </div>
+      <div class="auth-footer">Already have an account? <a onclick="switchTab('login')">Sign in</a></div>
     </div>
-
   </div>
 </div>
 
-<script src="js/api.js"></script>
+<script src="/js/api.js"></script>
 <script>
 let selectedRole = 'candidate';
 
-// Redirect if already logged in
+// FIX: Redirect to clean routes, not .html files
 (function() {
   const user = User.get();
   const token = Token.get();
   if (user && token) {
-    if (user.role === 'recruiter' || user.role === 'admin') {
-      window.location.href = 'dashboard/recruiter.html';
-    } else {
-      window.location.href = 'dashboard/candidate.html';
-    }
+    window.location.href = (user.role === 'recruiter' || user.role === 'admin')
+      ? '/dashboard/recruiter'
+      : '/dashboard/candidate';
   }
 })();
 
@@ -570,7 +211,7 @@ function selectRole(role) {
 
 function togglePwd(id, btn) {
   const el = document.getElementById(id);
-  el.type  = el.type === 'password' ? 'text' : 'password';
+  el.type = el.type === 'password' ? 'text' : 'password';
   btn.textContent = el.type === 'password' ? '👁' : '🙈';
 }
 
@@ -578,11 +219,11 @@ function showError(msg)   { const e=document.getElementById('error-msg');   e.st
 function showSuccess(msg) { const e=document.getElementById('success-msg'); e.style.display='block'; e.textContent=msg; document.getElementById('error-msg').style.display='none'; }
 function clearMessages()  { document.getElementById('error-msg').style.display='none'; document.getElementById('success-msg').style.display='none'; }
 
-function setLoading(btnId, loading, text='Please wait...') {
+function setLoading(btnId, loading) {
   const btn = document.getElementById(btnId);
   btn.disabled = loading;
   btn.innerHTML = loading
-    ? `<div class="spinner-sm"></div> ${text}`
+    ? `<div class="spinner-sm"></div> Please wait...`
     : (btnId === 'login-btn' ? 'Sign In' : 'Create Account');
 }
 
@@ -596,9 +237,10 @@ async function handleLogin() {
     const data = await AuthAPI.login(email, password);
     showSuccess('Login successful! Redirecting...');
     setTimeout(() => {
+      // FIX: Clean routes, not .html paths
       window.location.href = (data.role === 'recruiter' || data.role === 'admin')
-        ? 'dashboard/recruiter.html'
-        : 'dashboard/candidate.html';
+        ? '/dashboard/recruiter'
+        : '/dashboard/candidate';
     }, 700);
   } catch (err) {
     showError(err.message);
@@ -620,9 +262,10 @@ async function handleRegister() {
     showSuccess('Account created! Signing you in...');
     await AuthAPI.login(email, password);
     setTimeout(() => {
+      // FIX: Clean routes
       window.location.href = selectedRole === 'recruiter'
-        ? 'dashboard/recruiter.html'
-        : 'dashboard/candidate.html';
+        ? '/dashboard/recruiter'
+        : '/dashboard/candidate';
     }, 700);
   } catch (err) {
     showError(err.message);

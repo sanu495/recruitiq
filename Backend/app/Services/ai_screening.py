@@ -53,14 +53,8 @@ Respond ONLY in this exact JSON format (no extra text, no markdown):
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert HR recruiter. Always respond only in valid JSON format."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are an expert HR recruiter. Always respond only in valid JSON format."},
+                {"role": "user",   "content": prompt}
             ],
             temperature=0.3,
             max_tokens=400,
@@ -76,19 +70,13 @@ Respond ONLY in this exact JSON format (no extra text, no markdown):
         raw = raw.strip()
 
         result = json.loads(raw)
-
-        score    = int(result.get("score", 0))
+        score    = max(0, min(100, int(result.get("score", 0))))
         feedback = result.get("feedback", "")
-
-        # Clamp score between 0 and 100
-        score = max(0, min(100, score))
-
         return score, feedback
 
     except json.JSONDecodeError as e:
         print(f"Groq JSON parse error: {e}")
         return None, "AI screening failed — invalid response format."
-
     except Exception as e:
         print(f"Groq API error: {e}")
         return None, "AI screening temporarily unavailable."
@@ -132,24 +120,18 @@ Respond ONLY in this exact JSON format:
     try:
         client = get_groq_client()
 
+        # FIX: Use same model as screen_resume for consistency (llama3-8b-8192 is deprecated)
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a senior HR recruiter. Respond only in valid JSON."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are a senior HR recruiter. Respond only in valid JSON."},
+                {"role": "user",   "content": prompt}
             ],
             temperature=0.3,
             max_tokens=700,
         )
 
         raw = response.choices[0].message.content.strip()
-
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -161,7 +143,8 @@ Respond ONLY in this exact JSON format:
     except Exception as e:
         print(f"Detailed analysis error: {e}")
         return {}
-    
+
+
 def get_recommendation(score: int) -> str:
     if score >= 80: return "Strong Match"
     elif score >= 60: return "Good Match"

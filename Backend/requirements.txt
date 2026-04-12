@@ -1,9 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlmodel
 pymysql
-python-jose
-passlib
+python-jose[cryptography]
+passlib[bcrypt]
 python-multipart
 pdfplumber
 httpx
@@ -11,3 +11,5 @@ python-dotenv
 pydantic-settings
 bcrypt
 groq
+email-validator
+cryptography
