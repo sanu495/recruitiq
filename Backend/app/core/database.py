@@ -1,10 +1,8 @@
 from sqlmodel import SQLModel, create_engine, Session
-from Backend.app.core.config import settings
 
-DATABASE_URL = (f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-                f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}")
+DATABASE_URL = "sqlite:///./recruitiq.db"
 
-engine = create_engine(DATABASE_URL, echo= True)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo= True)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
