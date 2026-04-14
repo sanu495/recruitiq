@@ -53,6 +53,10 @@ def home():
 def login_page():
     return FileResponse("Frontend/index.html")
 
+@app.get("/index.html")
+def index_page():
+    return FileResponse("Frontend/index.html")
+
 @app.get("/dashboard/recruiter")
 def recruiter_dashboard():
     return FileResponse("Frontend/dashboard/recruiter.html")
@@ -98,6 +102,3 @@ async def health_check():
 @app.get("/kaithheathcheck")  # Their typo version too
 async def health_check_typo():
     return {"status": "healthy"}
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
