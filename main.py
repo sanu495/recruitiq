@@ -37,11 +37,14 @@ app.include_router(interview.router)
 # ── Static File Mounts ───────────────────────────────────────────
 # FIX: Use "Frontend" (capital F) to match actual folder name on disk
 # FIX: Mount CSS/JS/favicon/images so HTML pages can load them
-app.mount("/uploads", StaticFiles(directory="uploads"),          name="uploads")
-app.mount("/css",     StaticFiles(directory="Frontend/css"),     name="css")
-app.mount("/js",      StaticFiles(directory="Frontend/js"),      name="js")
-app.mount("/favicon", StaticFiles(directory="Frontend/favicon"), name="favicon")
-app.mount("/images",  StaticFiles(directory="Frontend/images"),  name="images")
+app.mount("/uploads",   StaticFiles(directory="uploads"),            name="uploads")
+app.mount("/css",       StaticFiles(directory="Frontend/css"),       name="css")
+app.mount("/js",        StaticFiles(directory="Frontend/js"),        name="js")
+app.mount("/favicon",   StaticFiles(directory="Frontend/favicon"),   name="favicon")
+app.mount("/images",    StaticFiles(directory="Frontend/images"),    name="images")
+app.mount("/pages",     StaticFiles(directory="Frontend/pages"),     name="pages")
+app.mount("/dashboard", StaticFiles(directory="Frontend/dashboard"), name="dashboard")
+
 
 # ── Page Routes ───────────────────────────────────────────────────
 # FIX: All FileResponse paths use "Frontend/" (capital F)

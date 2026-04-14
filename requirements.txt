@@ -1,8 +1,10 @@
 fastapi
-uvicorn[standard]
+uvicorn
 sqlmodel
 python-jose[cryptography]
-passlib[bcrypt]
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+argon2-cffi
 python-multipart
 pdfplumber
 httpx

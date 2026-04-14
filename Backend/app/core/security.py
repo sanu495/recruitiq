@@ -4,26 +4,21 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session, select
+from sqlmodel import Session
 from Backend.app.core.config import settings
 from Backend.app.core.database import get_session
 from Backend.app.Schema.schema import User
-import hashlib
-import base64
 
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ── Password ───────────────────────────────────────────────────────────────────
 
-def prehash_password(password:str) -> str:
-    return base64.b64encode(hashlib.sha256(password.encode()).digest()).decode()
+def hashed_password(password: str) -> str:
+    return pwd_context.hash(password)
 
-def hashed_password(password:str) -> str:
-    return pwd_context.hash(prehash_password(password))
-
-def verify_password(plain:str, hashed:str) -> bool:
-    return pwd_context.verify(prehash_password(plain), hashed)
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
 
  
 # ── JWT Token ──────────────────────────────────────────────────────────────────
