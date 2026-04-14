@@ -11,7 +11,7 @@ from Backend.app.Schema.schema import User
 import hashlib
 import base64
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ── Password ───────────────────────────────────────────────────────────────────
