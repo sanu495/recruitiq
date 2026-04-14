@@ -91,5 +91,13 @@ def on_startup():
     create_db_and_tables()
     print("✅ RecruitIQ is running!")
 
+@app.get("/kaithhealthcheck")
+async def health_check():
+    return {"status": "healthy"}
+
+@app.get("/kaithheathcheck")  # Their typo version too
+async def health_check_typo():
+    return {"status": "healthy"}
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
