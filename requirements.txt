@@ -3,14 +3,12 @@ uvicorn
 sqlmodel
 python-jose[cryptography]
 passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
-argon2-cffi
+bcrypt==3.2.2            
 python-multipart
 pdfplumber
 httpx
 python-dotenv
 pydantic-settings
-bcrypt
 groq
 email-validator
 cryptography
