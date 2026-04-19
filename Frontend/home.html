@@ -1966,19 +1966,40 @@
     </div>
   </footer>
 
-  <!-- REPLACE the broken last <script> with this -->
   <script>
-    const user = JSON.parse(localStorage.getItem('riq_user') || 'null');
-    const token = localStorage.getItem('riq_token');
-    if (user && token) {
-      const loginBtn = document.querySelector('.btn-ghost-nav');
-      if (loginBtn) {
-        loginBtn.textContent = 'Dashboard →';
-        loginBtn.href = (user.role === 'recruiter' || user.role === 'admin')
-          ? 'dashboard/recruiter.html'
-          : 'dashboard/candidate.html';
+    // ── Home page session guard ──────────────────────────────────────
+    // home.html does NOT import api.js, so isTokenExpired is inlined here.
+    (function () {
+      function isTokenExpired(token) {
+        if (!token) return true;
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          // exp is Unix seconds; add 10 s buffer for near-expiry tokens
+          return payload.exp * 1000 < Date.now() + 10_000;
+        } catch {
+          return true; // malformed token → treat as expired
+        }
       }
-    }
+
+      const user  = JSON.parse(localStorage.getItem('riq_user') || 'null');
+      const token = localStorage.getItem('riq_token');
+
+      if (user && token && !isTokenExpired(token)) {
+        // Valid session → swap "Sign In" nav button to "Dashboard →"
+        const loginBtn = document.querySelector('.btn-ghost-nav');
+        if (loginBtn) {
+          loginBtn.textContent = 'Dashboard →';
+          // Use clean routes — NOT .html file paths
+          loginBtn.href = (user.role === 'recruiter' || user.role === 'admin')
+            ? '/dashboard/recruiter'
+            : '/dashboard/candidate';
+        }
+      } else {
+        // Expired or missing token → wipe storage so index.html starts clean
+        localStorage.removeItem('riq_token');
+        localStorage.removeItem('riq_user');
+      }
+    })();
   </script>
 </body>
 

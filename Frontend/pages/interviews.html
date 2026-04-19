@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RecruitIQ — Interviews</title>
-<!-- ── Favicon ─────────────────────────────────────────── -->
 <link rel="icon" href="../favicon/favicon.ico">
 <link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
@@ -29,18 +28,21 @@
           <p id="page-sub">Manage interview schedules</p>
         </div>
         <button class="btn btn-primary" id="schedule-btn" style="display:none;" onclick="openScheduleModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
           Schedule Interview
         </button>
       </div>
 
       <!-- TABS -->
       <div style="display:flex;gap:4px;background:var(--bg-card);border-radius:10px;padding:4px;margin-bottom:20px;max-width:360px;">
-        <button class="btn" id="tab-upcoming" onclick="showTab('upcoming')" style="flex:1;background:var(--gradient);color:#fff;border:none;">Upcoming</button>
-        <button class="btn" id="tab-all" onclick="showTab('all')" style="flex:1;background:transparent;color:var(--text-muted);border:none;">All Interviews</button>
+        <button class="btn" id="tab-upcoming" onclick="showTab('upcoming')"
+          style="flex:1;background:var(--gradient);color:#fff;border:none;">Upcoming</button>
+        <button class="btn" id="tab-all" onclick="showTab('all')"
+          style="flex:1;background:transparent;color:var(--text-muted);border:none;">All Interviews</button>
       </div>
 
-      <!-- INTERVIEWS LIST -->
       <div id="interviews-container">
         <div style="text-align:center;padding:60px;color:var(--text-muted);">
           <div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div>
@@ -51,7 +53,7 @@
   </div>
 </div>
 
-<!-- SCHEDULE MODAL -->
+<!-- SCHEDULE MODAL (recruiter only) -->
 <div class="modal-overlay hidden" id="schedule-modal">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header">
@@ -101,15 +103,18 @@
 <script src="../js/api.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-let currentUser = null;
-let currentTab = 'upcoming';
+let currentUser   = null;
+let currentTab    = 'upcoming';
 let allInterviews = [];
 
 currentUser = requireAuth();
 if (currentUser) {
-  const isRecruiter = ['recruiter','admin'].includes(currentUser.role);
+  const isRecruiter = ['recruiter', 'admin'].includes(currentUser.role);
   buildSidebar('interviews');
-  buildTopbar('Interviews', isRecruiter ? 'Schedule and manage candidate interviews' : 'Your scheduled interviews');
+  buildTopbar('Interviews', isRecruiter
+    ? 'Schedule and manage candidate interviews'
+    : 'Your scheduled interviews');
+
   if (isRecruiter) {
     document.getElementById('schedule-btn').style.display = 'flex';
     document.getElementById('page-sub').textContent = 'Schedule and manage candidate interviews';
@@ -119,129 +124,237 @@ if (currentUser) {
   loadInterviews();
 }
 
-async function loadInterviews() {
-  try {
-    if (currentTab === 'upcoming') {
-      allInterviews = await InterviewAPI.upcoming();
-    } else {
-      allInterviews = await InterviewAPI.list();
-    }
-    renderInterviews(allInterviews);
-  } catch(err) { showToast(err.message, 'error'); }
-}
-
+// ── Tab switch ─────────────────────────────────────────────────────────────────
 function showTab(tab) {
   currentTab = tab;
-  const tabs = ['upcoming','all'];
-  tabs.forEach(t => {
+  ['upcoming', 'all'].forEach(t => {
     const btn = document.getElementById(`tab-${t}`);
-    if (t === tab) {
-      btn.style.background = 'var(--gradient)'; btn.style.color = '#fff';
-    } else {
-      btn.style.background = 'transparent'; btn.style.color = 'var(--text-muted)';
-    }
+    btn.style.background = t === tab ? 'var(--gradient)' : 'transparent';
+    btn.style.color      = t === tab ? '#fff'            : 'var(--text-muted)';
   });
   loadInterviews();
 }
 
-function renderInterviews(interviews) {
-  const container = document.getElementById('interviews-container');
-  if (interviews.length === 0) {
+// ── Main loader ────────────────────────────────────────────────────────────────
+async function loadInterviews() {
+  const isRecruiter = ['recruiter', 'admin'].includes(currentUser.role);
+
+  document.getElementById('interviews-container').innerHTML =
+    `<div style="text-align:center;padding:60px;color:var(--text-muted);">
+       <div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div>
+     </div>`;
+
+  try {
+    if (isRecruiter) {
+      // ── RECRUITER: always fetch full list, filter by STATUS not date ────────
+      // Using date-based upcoming() misses interviews whose time just passed
+      // but are still active (scheduled/confirmed). Status is the source of truth.
+      const allSlots = await InterviewAPI.list();
+
+      if (currentTab === 'upcoming') {
+        // "Upcoming" = not yet completed or cancelled
+        allInterviews = allSlots.filter(iv =>
+          ['scheduled', 'confirmed'].includes(iv.status)
+        );
+      } else {
+        allInterviews = allSlots;
+      }
+      renderRecruiterInterviews(allInterviews);
+
+    } else {
+      // ── CANDIDATE: fetch slots + shortlisted apps in parallel ───────────────
+      const allSlots = await InterviewAPI.list();
+      const myApps   = await AppAPI.myApps();
+
+      let slots = currentTab === 'upcoming'
+        ? allSlots.filter(iv => ['scheduled', 'confirmed'].includes(iv.status))
+        : allSlots;
+
+      // Apps in "interview" stage with no slot yet (pipeline-promoted, not yet scheduled)
+      const slottedAppIds = new Set(allSlots.map(s => s.application_id));
+      const pendingApps   = myApps.filter(
+        a => a.stage === 'interview' && !slottedAppIds.has(a.id)
+      );
+
+      renderCandidateInterviews(slots, pendingApps);
+    }
+  } catch(err) {
+    showToast(err.message, 'error');
+    document.getElementById('interviews-container').innerHTML =
+      `<div class="empty-state"><div class="empty-state-icon">⚠️</div>
+       <h3>Could not load interviews</h3><p>${err.message}</p></div>`;
+  }
+}
+
+// ── Candidate renderer ─────────────────────────────────────────────────────────
+function renderCandidateInterviews(slots, pendingApps) {
+  const container  = document.getElementById('interviews-container');
+  const hasSlots   = slots.length > 0;
+  const hasPending = pendingApps.length > 0;
+
+  if (!hasSlots && !hasPending) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📅</div>
-        <h3>No ${currentTab === 'upcoming' ? 'upcoming ' : ''}interviews</h3>
-        <p>${currentTab === 'upcoming'
-            ? 'No interviews scheduled yet. Schedule one from the Pipeline page.'
-            : 'No interview history found.'}</p>
+        <h3>No ${currentTab === 'upcoming' ? 'active ' : ''}interviews</h3>
+        <p>Keep applying and you'll hear back soon!</p>
       </div>`;
     return;
   }
 
-  container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      ${interviews.map(iv => interviewCard(iv)).join('')}
-    </div>`;
+  let html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+
+  // Pending / shortlisted (no slot created yet)
+  if (hasPending) {
+    html += `
+      <div style="padding:10px 14px;background:rgba(245,158,11,0.08);
+                  border:1px solid rgba(245,158,11,0.25);border-radius:var(--radius-md);
+                  font-size:12px;color:var(--warning);font-weight:600;">
+        ⏳ You've been shortlisted for interview — waiting for the recruiter to confirm the schedule.
+      </div>`;
+    pendingApps.forEach(app => {
+      html += `
+        <div style="display:flex;align-items:center;gap:16px;padding:20px;
+                    background:var(--bg-card);border:1px solid rgba(245,158,11,0.3);
+                    border-radius:var(--radius-lg);">
+          <div style="width:52px;height:52px;border-radius:12px;background:rgba(245,158,11,0.15);
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">🎯</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Shortlisted — Job #${app.job_id}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+              Application #${app.id} · Applied ${formatDate(app.applied_at)}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+                           background:rgba(245,158,11,0.15);color:var(--warning);">⏳ Awaiting Schedule</span>
+              ${app.ai_score != null
+                ? `<span style="font-size:12px;font-weight:700;color:${getScoreColor(app.ai_score)};">
+                     AI Score: ${app.ai_score}/100</span>`
+                : ''}
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);text-align:right;">
+            You'll be notified<br>when time is set
+          </div>
+        </div>`;
+    });
+  }
+
+  slots.forEach(iv => { html += interviewCard(iv, false); });
+  html += '</div>';
+  container.innerHTML = html;
 }
 
-function interviewCard(iv) {
-  const isRecruiter = ['recruiter','admin'].includes(currentUser.role);
+// ── Recruiter renderer ─────────────────────────────────────────────────────────
+function renderRecruiterInterviews(interviews) {
+  const container = document.getElementById('interviews-container');
+  if (interviews.length === 0) {
+    const msg = currentTab === 'upcoming'
+      ? 'No active interviews. Schedule one using the button above, or check All Interviews for past records.'
+      : 'No interview history yet.';
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📅</div>
+        <h3>No ${currentTab === 'upcoming' ? 'active ' : ''}interviews</h3>
+        <p>${msg}</p>
+      </div>`;
+    return;
+  }
+  container.innerHTML =
+    `<div style="display:flex;flex-direction:column;gap:12px;">
+       ${interviews.map(iv => interviewCard(iv, true)).join('')}
+     </div>`;
+}
+
+// ── Single interview card ──────────────────────────────────────────────────────
+function interviewCard(iv, isRecruiter) {
   const statusColors = {
-    scheduled:'var(--warning)', confirmed:'var(--success)',
-    completed:'var(--violet-light)', cancelled:'var(--danger)'
+    scheduled: 'var(--warning)',
+    confirmed: 'var(--success)',
+    completed: 'var(--violet-light)',
+    cancelled: 'var(--danger)',
   };
   const sc = statusColors[iv.status] || 'var(--text-muted)';
   const dt = new Date(iv.scheduled_at);
-  const isPast = dt < new Date();
 
   return `
     <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;">
       <div style="display:flex;gap:16px;align-items:center;">
-        <div style="width:52px;height:52px;border-radius:12px;background:${isPast?'var(--bg-input)':'rgba(245,158,11,0.15)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-          <div style="font-size:16px;font-weight:800;color:${isPast?'var(--text-muted)':'var(--warning)'};">${dt.getDate()}</div>
-          <div style="font-size:10px;color:var(--text-muted);">${dt.toLocaleString('default',{month:'short'})}</div>
+        <div style="width:52px;height:52px;border-radius:12px;
+                    background:rgba(245,158,11,0.15);
+                    display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="font-size:16px;font-weight:800;color:var(--warning);">${dt.getDate()}</div>
+          <div style="font-size:10px;color:var(--text-muted);">
+            ${dt.toLocaleString('default',{month:'short'})}
+          </div>
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
             <div style="font-size:14px;font-weight:700;">Interview · App #${iv.application_id}</div>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${sc}20;color:${sc};">${capitalize(iv.status)}</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
+                         background:${sc}20;color:${sc};">${capitalize(iv.status)}</span>
           </div>
           <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">
             📅 ${formatDateTime(iv.scheduled_at)} &nbsp;·&nbsp; ⏱ ${iv.duration_minutes} minutes
           </div>
-          ${iv.meeting_link ? `<a href="${iv.meeting_link}" style="font-size:12px;color:var(--violet-light);">🔗 Join Meeting</a>` : ''}
-          ${iv.location ? `<div style="font-size:12px;color:var(--text-muted);">📍 ${iv.location}</div>` : ''}
-          ${iv.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📝 ${iv.notes}</div>` : ''}
+          ${iv.meeting_link
+            ? `<a href="${iv.meeting_link}" target="_blank"
+                 style="font-size:12px;color:var(--violet-light);">🔗 Join Meeting</a>` : ''}
+          ${iv.location
+            ? `<div style="font-size:12px;color:var(--text-muted);">📍 ${iv.location}</div>` : ''}
+          ${iv.notes
+            ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📝 ${iv.notes}</div>` : ''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-        ${isRecruiter ? `
-          ${iv.status !== 'cancelled' && iv.status !== 'completed' ? `
-            <button class="btn btn-outline btn-sm" onclick="editInterview(${iv.id})">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>
-          ` : ''}
-        ` : `
-          ${iv.status === 'scheduled' ? `
-            <button class="btn btn-primary btn-sm" onclick="confirmInterview(${iv.id})">✓ Confirm</button>
-          ` : ''}
-          ${iv.status === 'scheduled' || iv.status === 'confirmed' ? `
-            <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>
-          ` : ''}
-        `}
+        ${isRecruiter
+          ? (iv.status !== 'cancelled' && iv.status !== 'completed'
+              ? `<button class="btn btn-outline btn-sm" onclick="editInterview(${iv.id})">Edit</button>
+                 <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>`
+              : `<span style="font-size:11px;color:var(--text-muted);">${capitalize(iv.status)}</span>`)
+          : (iv.status === 'scheduled'
+              ? `<button class="btn btn-primary btn-sm" onclick="confirmInterview(${iv.id})">✓ Confirm</button>
+                 <button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>`
+              : (iv.status === 'confirmed'
+                  ? `<button class="btn btn-danger btn-sm" onclick="cancelInterview(${iv.id})">Cancel</button>`
+                  : ''))}
       </div>
     </div>`;
 }
 
+// ── Actions ────────────────────────────────────────────────────────────────────
 function openScheduleModal() {
-  document.getElementById('s-app-id').value='';
-  document.getElementById('s-datetime').value='';
-  document.getElementById('s-link').value='';
-  document.getElementById('s-location').value='';
-  document.getElementById('s-notes').value='';
+  ['s-app-id','s-datetime','s-link','s-location','s-notes']
+    .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('schedule-modal').classList.remove('hidden');
 }
-function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); }
+function closeScheduleModal() {
+  document.getElementById('schedule-modal').classList.add('hidden');
+}
 
 async function scheduleInterview() {
-  const appId = parseInt(document.getElementById('s-app-id').value);
+  const appId    = parseInt(document.getElementById('s-app-id').value);
   const datetime = document.getElementById('s-datetime').value;
   if (!appId || !datetime) { showToast('Application ID and date/time are required', 'error'); return; }
   const btn = document.getElementById('schedule-save-btn');
-  btn.disabled=true; btn.textContent='Scheduling...';
+  btn.disabled = true; btn.textContent = 'Scheduling...';
   try {
     await InterviewAPI.schedule({
-      application_id: appId,
-      scheduled_at: new Date(datetime).toISOString(),
+      application_id:   appId,
+      scheduled_at:     new Date(datetime).toISOString(),
       duration_minutes: parseInt(document.getElementById('s-duration').value),
-      meeting_link: document.getElementById('s-link').value||null,
-      location: document.getElementById('s-location').value||null,
-      notes: document.getElementById('s-notes').value||null,
+      meeting_link:     document.getElementById('s-link').value     || null,
+      location:         document.getElementById('s-location').value || null,
+      notes:            document.getElementById('s-notes').value    || null,
     });
     showToast('Interview scheduled! Candidate notified.', 'success');
     closeScheduleModal();
     loadInterviews();
-  } catch(err) { showToast(err.message, 'error'); }
-  finally { btn.disabled=false; btn.textContent='Schedule →'; }
+  } catch(err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Schedule →';
+  }
 }
 
 async function confirmInterview(id) {
@@ -262,7 +375,7 @@ async function cancelInterview(id) {
 }
 
 function editInterview(id) {
-  showToast('Edit interview — open schedule modal with pre-filled data', 'info');
+  showToast('Open the Schedule modal and enter the new details.', 'info');
 }
 </script>
 </body>

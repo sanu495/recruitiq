@@ -183,14 +183,18 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
 <script>
 let selectedRole = 'candidate';
 
-// FIX: Redirect to clean routes, not .html files
 (function() {
   const user = User.get();
   const token = Token.get();
-  if (user && token) {
+
+  // Only auto-redirect if token actually exists AND is still valid
+  if (user && token && !Token.isExpired()) {
     window.location.href = (user.role === 'recruiter' || user.role === 'admin')
       ? '/dashboard/recruiter'
       : '/dashboard/candidate';
+  } else {
+    // Clear any stale leftovers so the login form starts clean
+    clearSession();
   }
 })();
 
@@ -237,7 +241,6 @@ async function handleLogin() {
     const data = await AuthAPI.login(email, password);
     showSuccess('Login successful! Redirecting...');
     setTimeout(() => {
-      // FIX: Clean routes, not .html paths
       window.location.href = (data.role === 'recruiter' || data.role === 'admin')
         ? '/dashboard/recruiter'
         : '/dashboard/candidate';
@@ -262,7 +265,6 @@ async function handleRegister() {
     showSuccess('Account created! Signing you in...');
     await AuthAPI.login(email, password);
     setTimeout(() => {
-      // FIX: Clean routes
       window.location.href = selectedRole === 'recruiter'
         ? '/dashboard/recruiter'
         : '/dashboard/candidate';

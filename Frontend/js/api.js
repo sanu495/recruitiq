@@ -6,6 +6,19 @@ const Token = {
   get:    ()  => localStorage.getItem('riq_token'),
   set:    (t) => localStorage.setItem('riq_token', t),
   remove: ()  => localStorage.removeItem('riq_token'),
+
+  // Decode JWT payload and check exp — no library needed
+  isExpired: () => {
+    const token = localStorage.getItem('riq_token');
+    if (!token) return true;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // exp is in seconds; add 10s buffer to catch near-expiry tokens
+      return payload.exp * 1000 < Date.now() + 10_000;
+    } catch {
+      return true; // malformed token → treat as expired
+    }
+  },
 };
 
 const User = {
@@ -13,6 +26,18 @@ const User = {
   set:    (u) => localStorage.setItem('riq_user', JSON.stringify(u)),
   remove: ()  => localStorage.removeItem('riq_user'),
 };
+
+// ── Session Helpers ───────────────────────────────────────────────────────────
+// Wipes both token + user from localStorage and redirects to login.
+function clearSession() {
+  Token.remove();
+  User.remove();
+}
+
+function redirectToLogin() {
+  clearSession();
+  window.location.href = '/login';
+}
 
 // ── Core Fetch Wrapper ────────────────────────────────────────────────────────
 async function apiCall(method, endpoint, body = null, isForm = false) {
@@ -34,6 +59,12 @@ async function apiCall(method, endpoint, body = null, isForm = false) {
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, options);
     const data = await res.json().catch(() => ({}));
+
+    // ── Auto-logout on expired / invalid token ────────────────────
+    if (res.status === 401) {
+      redirectToLogin();
+      return; // redirect is in flight — stop here
+    }
 
     if (!res.ok) {
       const msg = data.detail || `Error ${res.status}`;
@@ -76,11 +107,8 @@ const AuthAPI = {
     return apiCall('GET', '/api/auth/me');
   },
 
-  // FIX: Simplified logout — always redirect to /login (clean route, no .html)
   logout() {
-    Token.remove();
-    User.remove();
-    window.location.href = '/login';
+    redirectToLogin();
   },
 };
 

@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RecruitIQ — Analytics</title>
-<!-- ── Favicon ─────────────────────────────────────────── -->
 <link rel="icon" href="../favicon/favicon.ico">
 <link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
@@ -102,7 +101,7 @@
             <div class="card-title">Top AI-Scored Candidates</div>
             <div class="card-subtitle">Highest match scores across all jobs</div>
           </div>
-          <button class="btn btn-ghost btn-sm" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -160,7 +159,7 @@ async function loadAnalytics() {
       AnalyticsAPI.topCandidates(null, 20),
     ]);
 
-    // Overview stats
+    // ── Overview stat cards ────────────────────────────────────────────────
     document.getElementById('overview-stats').innerHTML = `
       <div class="stat-card">
         <div class="stat-card-icon">📋</div>
@@ -187,27 +186,27 @@ async function loadAnalytics() {
         <div class="stat-card-change up">Applied → Hired</div>
       </div>`;
 
-    // Pipeline bar chart
+    // ── Pipeline bar chart ─────────────────────────────────────────────────
     const pipeStages = Object.keys(pipeline);
     new Chart(document.getElementById('pipeline-chart'), {
       type: 'bar',
       data: {
-        labels: pipeStages.map(s => s.charAt(0).toUpperCase()+s.slice(1)),
+        labels: pipeStages.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
         datasets: [{
           data: Object.values(pipeline),
-          backgroundColor: pipeStages.map(s => STAGE_COLORS[s]+'CC' || '#888'),
+          backgroundColor: pipeStages.map(s => (STAGE_COLORS[s] || '#888') + 'CC'),
           borderRadius: 6,
         }]
       },
       options: { ...CHART_DEFAULTS,
         scales: {
-          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
-          y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          x: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
+          y: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
         }
       }
     });
 
-    // Monthly trend line chart
+    // ── Monthly trend line chart ───────────────────────────────────────────
     if (monthly.length > 0) {
       new Chart(document.getElementById('trend-chart'), {
         type: 'line',
@@ -226,8 +225,8 @@ async function loadAnalytics() {
         },
         options: { ...CHART_DEFAULTS,
           scales: {
-            x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
-            y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+            x: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
+            y: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
           }
         }
       });
@@ -236,16 +235,14 @@ async function loadAnalytics() {
         '<div class="empty-state" style="padding:40px;"><div class="empty-state-icon">📈</div><p>Not enough data yet</p></div>';
     }
 
-    // AI Score distribution
-    const scoreLabels = Object.keys(scores);
-    const scoreVals = Object.values(scores);
+    // ── AI Score distribution ──────────────────────────────────────────────
     const scoreColors = ['#EF4444','#F59E0B','#60A5FA','#A78BFA','#22C55E'];
     new Chart(document.getElementById('score-chart'), {
       type: 'bar',
       data: {
-        labels: scoreLabels,
+        labels: Object.keys(scores),
         datasets: [{
-          data: scoreVals,
+          data: Object.values(scores),
           backgroundColor: scoreColors,
           borderRadius: 6,
         }]
@@ -256,14 +253,14 @@ async function loadAnalytics() {
           label: ctx => ` ${ctx.raw} candidates`,
         }}},
         scales: {
-          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
-          y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
+          x: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
+          y: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
         }
       }
     });
 
-    // Per-job applications horizontal bar
-    const topJobs = perJob.slice(0,6);
+    // ── Applications per job horizontal bar ────────────────────────────────
+    const topJobs = perJob.slice(0, 6);
     new Chart(document.getElementById('perjob-chart'), {
       type: 'bar',
       data: {
@@ -277,16 +274,17 @@ async function loadAnalytics() {
       options: { ...CHART_DEFAULTS,
         indexAxis: 'y',
         scales: {
-          x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#9B97B8', font:{size:11} } },
-          y: { grid: { display:false }, ticks: { color:'#9B97B8', font:{size:11} } },
+          x: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#9B97B8',font:{size:11}} },
+          y: { grid:{display:false}, ticks:{color:'#9B97B8',font:{size:11}} },
         }
       }
     });
 
-    // Top candidates table
+    // ── Top candidates table ───────────────────────────────────────────────
     const tbody = document.getElementById('top-candidates-tbody');
     if (topCandidates.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">No AI-screened candidates yet</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">
+        No AI-screened candidates yet</td></tr>`;
     } else {
       tbody.innerHTML = topCandidates.map((c, i) => {
         const sc = getScoreColor(c.ai_score);
@@ -294,7 +292,9 @@ async function loadAnalytics() {
           <tr>
             <td>
               <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:26px;height:26px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${i+1}</div>
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--gradient);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:10px;font-weight:700;color:#fff;">${i+1}</div>
                 <div>
                   <div style="font-weight:600;font-size:13px;">${c.candidate_name}</div>
                   <div style="font-size:11px;color:var(--text-muted);">${c.candidate_email}</div>
@@ -314,7 +314,9 @@ async function loadAnalytics() {
             <td>${stageBadge(c.stage)}</td>
             <td style="font-size:12px;color:var(--text-muted);">${formatDate(c.applied_at)}</td>
             <td>
-              <button class="btn btn-outline btn-sm" onclick="window.location.href='pipeline.html?job_id=${c.job_id}'">
+              <!-- FIX: clean route + guard against undefined job_id -->
+              <button class="btn btn-outline btn-sm"
+                onclick="viewInPipeline(${c.job_id})">
                 View →
               </button>
             </td>
@@ -322,12 +324,21 @@ async function loadAnalytics() {
       }).join('');
     }
 
-  } catch(err) { showToast(err.message, 'error'); }
+  } catch(err) {
+    showToast(err.message, 'error');
+  }
 }
 
 function exportCSV() {
-  showToast('Preparing CSV export...', 'info');
-  // Opens export for first job — can be enhanced
+  showToast('Use the Pipeline page to export per-job CSV.', 'info');
+}
+
+function viewInPipeline(jobId) {
+  if (!jobId || jobId === 'undefined') {
+    showToast('Job ID not available — try refreshing the page.', 'error');
+    return;
+  }
+  window.location.href = '/pipeline?job_id=' + jobId;
 }
 
 loadAnalytics();

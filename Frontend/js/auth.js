@@ -3,7 +3,9 @@ function requireAuth(allowedRoles = []) {
   const user = User.get();
   const token = Token.get();
 
-  if (!user || !token) {
+  // ── Clear stale / expired session and redirect to login ────────
+  if (!user || !token || Token.isExpired()) {
+    clearSession();
     window.location.href = '/login';
     return null;
   }
@@ -22,8 +24,10 @@ function requireAuth(allowedRoles = []) {
 function requireGuest() {
   const user = User.get();
   const token = Token.get();
-  if (user && token) {
+  if (user && token && !Token.isExpired()) {
     redirectByRole(user.role);
+  } else {
+    clearSession();
   }
 }
 
@@ -135,8 +139,7 @@ function buildSidebar(activeItem = '') {
 
 // ── Logout ────────────────────────────────────────────────────────────────────
 function logout() {
-  Token.remove();
-  User.remove();
+  clearSession();
   window.location.href = '/login';
 }
 

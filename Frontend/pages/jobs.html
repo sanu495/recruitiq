@@ -53,7 +53,7 @@
                 </svg>
               </span>
               <input type="text" class="form-control" id="search-input"
-                placeholder="Search jobs by title or skill..." oninput="loadJobs()">
+                placeholder="Search jobs by title or skill..." oninput="debouncedLoad()">
             </div>
 
             <select class="form-control" id="filter-type" onchange="loadJobs()">
@@ -65,7 +65,7 @@
             </select>
 
             <input type="text" class="form-control" id="filter-location"
-              placeholder="Location..." oninput="loadJobs()">
+              placeholder="Location..." oninput="debouncedLoad()">
 
             <select class="form-control" id="filter-status" onchange="loadJobs()">
               <option value="open">Open Jobs</option>
@@ -203,10 +203,16 @@
   <script src="../js/api.js"></script>
   <script src="../js/auth.js"></script>
   <script>
+    // ── Debounce: wait 350ms after user stops typing before firing API call ──
+    let _searchTimer = null;
+    function debouncedLoad() {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(loadJobs, 350);
+    }
     let currentUser = null;
     let editJobId = null;
     let applyJobId = null;
-    let appliedJobIds = new Set(); // ← tracks which jobs the candidate already applied to
+    let appliedJobIds = new Set();
 
     currentUser = requireAuth();
 
@@ -233,13 +239,13 @@
 
     async function loadJobs() {
       const search   = document.getElementById('search-input').value.trim();
-      const job_type = document.getElementById('filter-type').value;       // FIX — was jobtype
+      const job_type = document.getElementById('filter-type').value;
       const location = document.getElementById('filter-location').value.trim();
       const status   = document.getElementById('filter-status').value;
 
       const params = {};
       if (search)   params.search   = search;
-      if (job_type) params.job_type = job_type;   // FIX — was params.jobtype
+      if (job_type) params.job_type = job_type;
       if (location) params.location = location;
       if (status)   params.status   = status;
 
@@ -251,7 +257,6 @@
       try {
         const isRecruiter = ['recruiter', 'admin'].includes(currentUser.role);
 
-        // Load applied jobs for candidate so we can mark them
         if (!isRecruiter) {
           try {
             const myApps = await AppAPI.myApps();
@@ -285,17 +290,14 @@
     }
 
     function jobCard(j, isRecruiter) {
-      // FIX — use snake_case field names matching backend response
       const typeLabel = j.job_type?.replace('_', ' ') || 'Full Time';
 
-      // FIX — salary_min / salary_max not salarymin / salarymax
       const salary = j.salary_min && j.salary_max
         ? `₹${(j.salary_min / 100000).toFixed(1)}L – ₹${(j.salary_max / 100000).toFixed(1)}L`
         : j.salary_min
           ? `₹${(j.salary_min / 100000).toFixed(1)}L+`
           : 'Salary not disclosed';
 
-      // FIX — check if candidate already applied to this job
       const alreadyApplied = !isRecruiter && appliedJobIds.has(j.id);
 
       return `
@@ -342,7 +344,7 @@
                 <button class="btn btn-ghost btn-sm"
                   onclick="editJob(${JSON.stringify(j).replace(/"/g, '&quot;')})">Edit</button>
                 <button class="btn btn-primary btn-sm"
-                  onclick="window.location.href='pipeline.html?job_id=${j.id}'">Pipeline</button>
+                  onclick="window.location.href='/pipeline?job_id=${j.id}'">Pipeline</button>
               ` : j.status === 'open' ? (
                 alreadyApplied ? `
                   <span class="badge badge-applied" style="padding:6px 14px;font-size:12px;">
@@ -369,7 +371,6 @@
       document.getElementById('modal-title').textContent = job ? 'Edit Job' : 'Post New Job';
 
       if (job) {
-        // FIX — use snake_case field names from backend
         document.getElementById('f-title').value    = job.title || '';
         document.getElementById('f-desc').value     = job.description || '';
         document.getElementById('f-skills').value   = job.required_skills || '';
@@ -416,7 +417,6 @@
       btn.textContent = 'Saving...';
 
       try {
-        // FIX — use snake_case keys matching backend schema
         const data = {
           title,
           description:      desc,
@@ -491,8 +491,9 @@
         closeApplyModal();
         showToast('Application submitted! Redirecting to dashboard...', 'success');
 
+        // ✅ FIX: Use clean route — NOT '../dashboard/candidate.html'
         setTimeout(() => {
-          window.location.href = '../dashboard/candidate.html';
+          window.location.href = '/dashboard/candidate';
         }, 1500);
 
       } catch (err) {
@@ -505,10 +506,10 @@
     }
 
     function clearFilters() {
-      document.getElementById('search-input').value  = '';
-      document.getElementById('filter-type').value   = '';
+      document.getElementById('search-input').value    = '';
+      document.getElementById('filter-type').value     = '';
       document.getElementById('filter-location').value = '';
-      document.getElementById('filter-status').value = 'open';
+      document.getElementById('filter-status').value   = 'open';
       loadJobs();
     }
 
