@@ -101,7 +101,13 @@
             <div class="card-title">Top AI-Scored Candidates</div>
             <div class="card-subtitle">Highest match scores across all jobs</div>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <select id="export-job-select" class="form-control"
+              style="width:200px;padding:6px 10px;font-size:12px;">
+              <option value="">All jobs (by job)</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -259,6 +265,20 @@ async function loadAnalytics() {
       }
     });
 
+    // ── Store jobs globally for export and populate export dropdown ──────────
+    window._analyticsJobs = perJob;
+    const exportSel = document.getElementById('export-job-select');
+    if (exportSel) {
+      // Clear existing options except the first "All jobs" option
+      while (exportSel.options.length > 1) exportSel.remove(1);
+      perJob.forEach(j => {
+        const opt      = document.createElement('option');
+        opt.value      = j.job_id;
+        opt.textContent = `${j.job_title} (${j.total_applicants} apps)`;
+        exportSel.appendChild(opt);
+      });
+    }
+
     // ── Applications per job horizontal bar ────────────────────────────────
     const topJobs = perJob.slice(0, 6);
     new Chart(document.getElementById('perjob-chart'), {
@@ -330,7 +350,37 @@ async function loadAnalytics() {
 }
 
 function exportCSV() {
-  showToast('Use the Pipeline page to export per-job CSV.', 'info');
+  const sel   = document.getElementById('export-job-select');
+  const jobId = sel ? sel.value : '';
+
+  if (!jobId) {
+    // No specific job selected — download CSVs for all jobs sequentially
+    const jobs = window._analyticsJobs || [];
+    if (jobs.length === 0) {
+      showToast('No jobs available to export', 'error');
+      return;
+    }
+    jobs.forEach((job, i) => {
+      setTimeout(() => {
+        triggerDownload(AppAPI.exportCSV(job.job_id), `job_${job.job_id}_${job.job_title.replace(/\s+/g,'_')}.csv`);
+      }, i * 600); // stagger downloads so browser doesn't block them
+    });
+    showToast(`Downloading ${jobs.length} CSV file(s)...`, 'success');
+  } else {
+    // Specific job selected
+    triggerDownload(AppAPI.exportCSV(jobId), `job_${jobId}_applicants.csv`);
+    showToast('Downloading CSV...', 'success');
+  }
+}
+
+function triggerDownload(url, filename) {
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function viewInPipeline(jobId) {

@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RecruitIQ — Pipeline</title>
-<!-- ── Favicon ─────────────────────────────────────────── -->
 <link rel="icon" href="../favicon/favicon.ico">
 <link rel="icon" type="image/x-icon"        href="../favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon/favicon-16x16.png">
@@ -22,17 +21,11 @@
 .kanban-col-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
 .kanban-count { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; }
 .kanban-cards { display:flex; flex-direction:column; gap:8px; }
-.k-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; cursor:pointer; transition:all 0.2s; }
+.k-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; cursor:pointer; transition:border-color 0.15s ease; }
 .k-card:hover { border-color:var(--border-active); transform:translateY(-1px); }
 .k-card-name { font-size:13px; font-weight:600; margin-bottom:4px; }
 .k-card-role { font-size:11px; color:var(--text-muted); margin-bottom:8px; }
 .k-card-score { font-size:12px; font-weight:700; }
-.stage-applied    { background:rgba(100,116,139,0.15); }
-.stage-screening  { background:rgba(139,92,246,0.15); }
-.stage-interview  { background:rgba(245,158,11,0.15); }
-.stage-offer      { background:rgba(217,102,245,0.15); }
-.stage-hired      { background:rgba(34,197,94,0.15); }
-.stage-rejected   { background:rgba(239,68,68,0.15); }
 </style>
 </head>
 <body>
@@ -45,18 +38,20 @@
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <h2>Hiring Pipeline</h2>
-          <p>Drag candidates through hiring stages</p>
+          <p>Move candidates through hiring stages</p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <select class="form-control" id="job-select" onchange="loadPipeline()" style="width:260px;">
+          <select class="form-control" id="job-select" onchange="loadPipeline()" style="width:280px;">
             <option value="">Select a job...</option>
           </select>
-          <button class="btn btn-danger btn-sm" id="bulk-reject-btn" style="display:none;" onclick="bulkReject()">Bulk Reject Applied</button>
+          <button class="btn btn-danger btn-sm" id="bulk-reject-btn"
+            style="display:none;" onclick="bulkReject()">Bulk Reject Applied</button>
         </div>
       </div>
 
       <!-- SUMMARY CARDS -->
-      <div id="summary-row" style="display:none;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px;">
+      <div id="summary-row"
+        style="display:none;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px;">
         <div class="card" style="padding:12px;text-align:center;" id="sum-applied">
           <div style="font-size:20px;font-weight:800;color:#94a3b8;">0</div>
           <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Applied</div>
@@ -124,38 +119,63 @@ const STAGES = [
   {key:'rejected',  label:'Rejected',  color:'#EF4444', bg:'rgba(239,68,68,0.15)'},
 ];
 
-let allApps = [];
+let allApps      = [];
 let currentJobId = null;
 
-// Load jobs into select
+// ── Read job_id from URL before anything else ──────────────────────────────────
+// FIX: Read param immediately on load — don't wait for async job list
+const urlParams  = new URLSearchParams(window.location.search);
+const urlJobId   = urlParams.get('job_id');   // e.g. "3"
+
+// ── Populate job select, then auto-select URL param if present ─────────────────
 (async () => {
   try {
     const jobs = await JobsAPI.myPosted();
-    const sel = document.getElementById('job-select');
+    const sel  = document.getElementById('job-select');
+
     jobs.forEach(j => {
-      const opt = document.createElement('option');
-      opt.value = j.id; opt.textContent = `${j.title} (${j.status})`;
+      const opt        = document.createElement('option');
+      opt.value        = String(j.id);   // ensure string for value comparison
+      opt.textContent  = `${j.title} (${j.status})`;
       sel.appendChild(opt);
     });
-    // Check URL param
-    const urlJobId = new URLSearchParams(window.location.search).get('job_id');
-    if (urlJobId) { sel.value = urlJobId; loadPipeline(); }
-  } catch(err) { showToast(err.message, 'error'); }
+
+    if (urlJobId) {
+      // FIX: If the job isn't in myPosted (e.g. admin viewing another recruiter's job),
+      // add it as a synthetic option so the select can hold the value
+      const exists = jobs.some(j => String(j.id) === String(urlJobId));
+      if (!exists) {
+        const opt       = document.createElement('option');
+        opt.value       = String(urlJobId);
+        opt.textContent = `Job #${urlJobId}`;
+        sel.appendChild(opt);
+      }
+
+      sel.value = String(urlJobId);   // select the option
+      loadPipeline();                 // auto-load the pipeline
+    }
+  } catch(err) {
+    showToast('Could not load jobs: ' + err.message, 'error');
+  }
 })();
 
+// ── Load pipeline for selected job ────────────────────────────────────────────
 async function loadPipeline() {
   currentJobId = document.getElementById('job-select').value;
+
   if (!currentJobId) {
     document.getElementById('board-container').innerHTML = `
       <div class="empty-state"><div class="empty-state-icon">🔄</div>
       <h3>Select a job to view pipeline</h3></div>`;
-    document.getElementById('summary-row').style.display='none';
-    document.getElementById('bulk-reject-btn').style.display='none';
+    document.getElementById('summary-row').style.display  = 'none';
+    document.getElementById('bulk-reject-btn').style.display = 'none';
     return;
   }
 
   document.getElementById('board-container').innerHTML =
-    `<div style="text-align:center;padding:60px;color:var(--text-muted);"><div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div></div>`;
+    `<div style="text-align:center;padding:60px;color:var(--text-muted);">
+       <div class="spinner" style="margin:0 auto;width:32px;height:32px;border-width:3px;"></div>
+     </div>`;
 
   try {
     const [apps, summary] = await Promise.all([
@@ -165,30 +185,34 @@ async function loadPipeline() {
     allApps = apps;
 
     // Summary row
-    const sumRow = document.getElementById('summary-row');
-    sumRow.style.display = 'grid';
+    document.getElementById('summary-row').style.display = 'grid';
     STAGES.forEach(s => {
       const el = document.getElementById(`sum-${s.key}`);
       if (el) el.querySelector('div').textContent = summary[s.key] || 0;
     });
     document.getElementById('bulk-reject-btn').style.display = 'flex';
 
-    // Build kanban
+    // Build kanban board
     const board = document.createElement('div');
     board.className = 'kanban-board';
 
     STAGES.forEach(stage => {
       const stageApps = apps.filter(a => a.stage === stage.key);
-      const col = document.createElement('div');
-      col.className = 'kanban-col';
-      col.innerHTML = `
+      const col       = document.createElement('div');
+      col.className   = 'kanban-col';
+      col.innerHTML   = `
         <div class="kanban-header" style="background:${stage.bg};">
           <span class="kanban-col-title" style="color:${stage.color};">${stage.label}</span>
-          <span class="kanban-count" style="background:${stage.color}20;color:${stage.color};">${stageApps.length}</span>
+          <span class="kanban-count" style="background:${stage.color}20;color:${stage.color};">
+            ${stageApps.length}
+          </span>
         </div>
         <div class="kanban-cards">
           ${stageApps.length === 0
-            ? `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;border:1px dashed var(--border);border-radius:var(--radius-md);">No candidates</div>`
+            ? `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;
+                           border:1px dashed var(--border);border-radius:var(--radius-md);">
+                 No candidates
+               </div>`
             : stageApps.map(a => kanbanCard(a, stage.color)).join('')}
         </div>`;
       board.appendChild(col);
@@ -197,16 +221,24 @@ async function loadPipeline() {
     document.getElementById('board-container').innerHTML = '';
     document.getElementById('board-container').appendChild(board);
 
-  } catch(err) { showToast(err.message, 'error'); }
+  } catch(err) {
+    showToast(err.message, 'error');
+    document.getElementById('board-container').innerHTML = `
+      <div class="empty-state"><div class="empty-state-icon">⚠️</div>
+      <h3>Could not load pipeline</h3><p>${err.message}</p></div>`;
+  }
 }
 
+// ── Kanban card ───────────────────────────────────────────────────────────────
 function kanbanCard(app, color) {
-  const score = app.ai_score;
+  const score      = app.ai_score;
   const scoreColor = score != null ? getScoreColor(score) : 'var(--text-muted)';
   return `
     <div class="k-card" onclick="showDetail(${app.id})">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <div class="user-avatar" style="width:28px;height:28px;font-size:10px;">C${app.candidate_id}</div>
+        <div class="user-avatar" style="width:28px;height:28px;font-size:10px;">
+          C${app.candidate_id}
+        </div>
         <div>
           <div class="k-card-name">Candidate #${app.candidate_id}</div>
           <div class="k-card-role">App #${app.id}</div>
@@ -214,23 +246,26 @@ function kanbanCard(app, color) {
       </div>
       ${score != null
         ? `<div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="font-size:10px;color:var(--text-muted);">AI Score</div>
-            <div class="k-card-score" style="color:${scoreColor};">${score}/100</div>
+             <div style="font-size:10px;color:var(--text-muted);">AI Score</div>
+             <div class="k-card-score" style="color:${scoreColor};">${score}/100</div>
            </div>
            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;">
              <div style="height:3px;width:${score}%;background:${scoreColor};border-radius:2px;"></div>
            </div>`
         : `<div style="font-size:10px;color:var(--text-muted);">Not AI screened yet</div>`}
-      <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">${formatDate(app.applied_at)}</div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">
+        ${formatDate(app.applied_at)}
+      </div>
     </div>`;
 }
 
+// ── Candidate detail modal ─────────────────────────────────────────────────────
 async function showDetail(appId) {
   const app = allApps.find(a => a.id === appId);
   if (!app) return;
 
   document.getElementById('detail-name').textContent = `Candidate #${app.candidate_id}`;
-  const score = app.ai_score;
+  const score      = app.ai_score;
   const scoreColor = score != null ? getScoreColor(score) : 'var(--text-muted)';
 
   document.getElementById('detail-content').innerHTML = `
@@ -255,41 +290,60 @@ async function showDetail(appId) {
           <div style="height:6px;background:var(--border);border-radius:3px;margin-bottom:10px;">
             <div style="height:6px;width:${score}%;background:${scoreColor};border-radius:3px;"></div>
           </div>
-          <div style="font-size:12px;font-weight:600;color:${scoreColor};margin-bottom:6px;">${getScoreLabel(score)}</div>
-          ${app.ai_feedback ? `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${app.ai_feedback}</div>` : ''}
+          <div style="font-size:12px;font-weight:600;color:${scoreColor};margin-bottom:6px;">
+            ${getScoreLabel(score)}
+          </div>
+          ${app.ai_feedback
+            ? `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+                 ${app.ai_feedback}
+               </div>`
+            : ''}
         </div>` : `
         <div class="card" style="padding:14px;text-align:center;">
-          <div style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">Resume not AI screened yet</div>
-          <button class="btn btn-outline btn-sm" onclick="screenApp(${app.id})">🤖 Run AI Screening</button>
+          <div style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">
+            Resume not AI screened yet
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="screenApp(${app.id})">
+            🤖 Run AI Screening
+          </button>
         </div>`}
 
       ${app.cover_letter ? `
         <div class="card" style="padding:14px;">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Cover Letter</div>
-          <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${app.cover_letter}</div>
+          <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+            ${app.cover_letter}
+          </div>
         </div>` : ''}
 
       <div>
         <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Move to Stage</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
           ${STAGES.filter(s => s.key !== app.stage).map(s =>
-            `<button class="btn btn-ghost btn-sm" onclick="moveStage(${app.id},'${s.key}')" style="border-color:${s.color}30;color:${s.color};">${s.label}</button>`
+            `<button class="btn btn-ghost btn-sm"
+               onclick="moveStage(${app.id},'${s.key}')"
+               style="border-color:${s.color}30;color:${s.color};">${s.label}</button>`
           ).join('')}
         </div>
       </div>
 
       <div>
         <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Add Note</div>
-        <textarea class="form-control" id="note-input" rows="2" placeholder="Private recruiter note..."></textarea>
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addNote(${app.id})">Save Note</button>
+        <textarea class="form-control" id="note-input" rows="2"
+          placeholder="Private recruiter note..."></textarea>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;"
+          onclick="addNote(${app.id})">Save Note</button>
       </div>
     </div>`;
 
   document.getElementById('detail-modal').classList.remove('hidden');
 }
 
-function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); }
+function closeDetail() {
+  document.getElementById('detail-modal').classList.add('hidden');
+}
 
+// ── Actions ───────────────────────────────────────────────────────────────────
 async function moveStage(appId, stage) {
   try {
     await PipelineAPI.updateStage(appId, stage);
@@ -315,7 +369,7 @@ async function addNote(appId) {
   try {
     await AppAPI.addNote(appId, note);
     showToast('Note saved', 'success');
-    document.getElementById('note-input').value='';
+    document.getElementById('note-input').value = '';
   } catch(err) { showToast(err.message, 'error'); }
 }
 
