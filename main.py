@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from Backend.app.core.database import create_db_and_tables
 from Backend.app.api import auth, jobs, applications, pipeline, notification, analytics, interview
+from Backend.app.core.config import settings as _s
 import os
 
 app = FastAPI(
@@ -21,7 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-os.makedirs("uploads", exist_ok=True)
+try:
+    os.makedirs(_s.UPLOAD_DIR, exist_ok=True)
+except OSError:
+    pass  
 
 # ── API Routers — MUST come before ANY static mounts ──────────────────────────
 app.include_router(auth.router)
@@ -33,8 +37,7 @@ app.include_router(analytics.router)
 app.include_router(interview.router)
 
 # ── Helper: serve HTML with no-cache headers ───────────────────────────────────
-# FIX: Browsers were caching old HTML pages (e.g. analytics.html with the broken
-# pipeline.html path). These headers force a fresh fetch every time.
+
 NO_CACHE = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Pragma":        "no-cache",
@@ -90,7 +93,6 @@ def notifications_page():
     return page("Frontend/pages/notifications.html")
 
 # ── Static File Mounts — AFTER all explicit routes ────────────────────────────
-# /pages and /dashboard mounts removed — pages served by explicit routes above.
 app.mount("/uploads", StaticFiles(directory="uploads"),          name="uploads")
 app.mount("/css",     StaticFiles(directory="Frontend/css"),     name="css")
 app.mount("/js",      StaticFiles(directory="Frontend/js"),      name="js")

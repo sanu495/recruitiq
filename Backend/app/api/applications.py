@@ -18,7 +18,12 @@ import io
 
 router = APIRouter(prefix="/api/applications", tags=["Applications"])
 
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+# FIX: Do NOT call os.makedirs at module level — Leapcell filesystem is read-only
+# at import time. The directory is created safely inside each request instead.
+
+def ensure_upload_dir():
+    """Create upload directory if it doesn't exist. Called per-request, not at import."""
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 # ── Apply to a Job (Candidate only) ───────────────────────────────────────────
 
@@ -30,12 +35,15 @@ async def apply_to_job(
     current_user: User = Depends(require_role("candidate")),
     session: Session = Depends(get_session)
 ):
+    # Ensure upload dir exists (safe to call here — filesystem is writable at runtime)
+    ensure_upload_dir()
+
     # Check job exists and is open
     job_dal = GenericDal(Job, session)
     job = job_dal.get(job_id)
 
     if job.status != "open":
-        raise HTTPException(status_code=400, detail="This Job is no longer accepting application")
+        raise HTTPException(status_code=400, detail="This Job is no longer accepting applications")
 
     # Check if already applied
     app_dal = GenericDal(Application, session)
@@ -49,8 +57,7 @@ async def apply_to_job(
     if existing:
         raise HTTPException(status_code=400, detail="You have already applied to this job")
 
-    # FIX 1 — Validate by file extension, not MIME type
-    # MIME type is unreliable on Windows (Chrome sends application/octet-stream for PDFs)
+    # Validate by file extension
     filename_lower = resume.filename.lower()
     if not (filename_lower.endswith('.pdf') or
             filename_lower.endswith('.doc') or
@@ -68,8 +75,7 @@ async def apply_to_job(
     with open(filepath, "wb") as f:
         shutil.copyfileobj(resume.file, f)
 
-    # FIX 2 — Normalize Windows backslashes before storing in DB
-    # os.path.join on Windows produces "uploads\\filename" which causes MySQL INSERT to fail
+    # Normalize Windows backslashes
     clean_path = filepath.replace("\\", "/")
 
     # Extract text from PDF for AI screening
@@ -79,9 +85,8 @@ async def apply_to_job(
             resume_text = extract_text_from_pdf(filepath)
         except Exception as e:
             print(f"PDF extraction error: {e}")
-            pass
 
-    # AI Screening — only run if a valid Groq key is configured
+    # AI Screening
     ai_score = None
     ai_feedback = None
 
@@ -92,9 +97,7 @@ async def apply_to_job(
             )
         except Exception as e:
             print(f"AI screening skipped: {e}")
-            pass
 
-    # FIX 3 — Use clean_path (forward slashes) instead of raw filepath
     application = Application(
         job_id=job_id,
         candidate_id=current_user.id,
@@ -126,7 +129,6 @@ def my_application(
     return dal.get_many_by_field("candidate_id", current_user.id)
 
 # ── Export Applicants as CSV ───────────────────────────────────────────────────
-# NOTE: This route must stay BEFORE /{app_id} routes to avoid FastAPI routing conflict
 
 @router.get("/job/{job_id}/export")
 def export_csv(
@@ -183,7 +185,6 @@ def get_application(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    # Candidate can only see their own
     if current_user.role == "candidate" and app.candidate_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -219,7 +220,7 @@ def add_note(
     session: Session = Depends(get_session)
 ):
     app_dal = GenericDal(Application, session)
-    app_dal.get(app_id)  # validates application exists
+    app_dal.get(app_id)
 
     note_dal = GenericDal(CandidateNote, session)
     note = CandidateNote(
@@ -270,12 +271,12 @@ async def trigger_ai_screening(
             detail="AI screening unavailable. Check GROQ_API_KEY."
         )
 
-    updated = dal.update(app_id, {"ai_score": ai_score, "ai_feedback": ai_feedback})
+    dal.update(app_id, {"ai_score": ai_score, "ai_feedback": ai_feedback})
     return {
         "application_id": app_id,
-        "ai_score": ai_score,
-        "ai_feedback": ai_feedback,
-        "recommendation": get_recommendation(ai_score)
+        "ai_score":        ai_score,
+        "ai_feedback":     ai_feedback,
+        "recommendation":  get_recommendation(ai_score)
     }
 
 # ── Get Detailed AI Analysis ───────────────────────────────────────────────────
