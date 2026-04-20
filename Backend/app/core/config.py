@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
 
     # Upload
-    UPLOAD_DIR: str = "/tmp/uploads"
+    UPLOAD_DIR: str = "uploads"
 
     class Config:
         env_file = ".env"
