@@ -1,8 +1,11 @@
 from sqlmodel import SQLModel, create_engine, Session
+from Backend.app.core.config import settings
 
-DATABASE_URL = "sqlite:///./recruitiq.db"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo= True)
+engine = create_engine(
+    settings.DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    echo=True,
+)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
