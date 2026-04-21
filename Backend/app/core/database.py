@@ -1,10 +1,11 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, Session, create_engine
+
 from Backend.app.core.config import settings
 
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=True,
+    echo=False,
 )
 
 def create_db_and_tables():
