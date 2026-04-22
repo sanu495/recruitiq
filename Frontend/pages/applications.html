@@ -28,7 +28,8 @@
           <h2>My Applications</h2>
           <p>Track all your job applications and their status</p>
         </div>
-        <button class="btn btn-primary" onclick="window.location.href='jobs.html'">Browse Jobs →</button>
+        <!-- FIX: was 'jobs.html' → now clean route '/jobs' -->
+        <button class="btn btn-primary" onclick="window.location.href='/jobs'">Browse Jobs →</button>
       </div>
 
       <!-- FILTER TABS -->
@@ -104,7 +105,7 @@ function renderApps(apps) {
         <div class="empty-state-icon">📋</div>
         <h3>${currentFilter==='all' ? "No applications yet" : `No ${currentFilter} applications`}</h3>
         <p>${currentFilter==='all' ? "Start browsing jobs and apply!" : "No applications in this stage"}</p>
-        ${currentFilter==='all' ? `<button class="btn btn-primary" onclick="window.location.href='jobs.html'">Browse Jobs</button>` : ''}
+        ${currentFilter==='all' ? `<button class="btn btn-primary" onclick="window.location.href='/jobs'">Browse Jobs</button>` : ''}
       </div>`;
     return;
   }
